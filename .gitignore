@@ -1,0 +1,4 @@
+venv/
+*.sw?
+test-data
+__pycache__
