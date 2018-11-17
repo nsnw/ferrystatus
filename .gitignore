@@ -2,3 +2,6 @@ venv/
 *.sw?
 test-data
 __pycache__
+db.sqlite3
+_data
+*.log
