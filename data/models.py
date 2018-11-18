@@ -17,6 +17,12 @@ class DayOfWeek(Enum):
     SUN = "Sunday"
 
 
+class FerryStatus(Enum):
+    IN_PORT = "In Port"
+    UNDER_WAY = "Under Way"
+    OFFLINE = "Offline"
+
+
 class Terminal(models.Model):
     name = models.CharField(max_length=64, null=False, blank=False)
     short_name = models.CharField(max_length=16, null=False, blank=False)
@@ -76,6 +82,12 @@ class Route(models.Model):
 
 class Ferry(models.Model):
     name = models.CharField(max_length=64, null=False, blank=False)
+    destination = models.ForeignKey(Destination, null=True, blank=True, on_delete=models.DO_NOTHING)
+    status = models.CharField(max_length=16, choices=[
+        (tag, tag.value) for tag in FerryStatus
+    ], null=True, blank=True)
+    last_updated = models.DateTimeField(auto_now=True)
+    heading = models.CharField(max_length=8, null=True, blank=True)
 
     @property
     def current_sailing(self) -> "Sailing":
@@ -203,6 +215,22 @@ class RouteEvent(PolymorphicModel):
         return self.timestamp.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S")
 
 
+class LocationEvent(PolymorphicModel):
+    ferry = models.ForeignKey(Ferry, null=False, blank=False, on_delete=models.DO_NOTHING)
+    timestamp = models.DateTimeField(auto_now=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    @property
+    def time(self) -> str:
+        tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
+        return self.timestamp.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S")
+
+    @property
+    def updated(self) -> str:
+        tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
+        return self.last_updated.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S")
+
+
 class DepartureTimeEvent(SailingEvent):
     old_departure = models.DateTimeField(null=True, blank=True)
     new_departure = models.DateTimeField(null=True, blank=True)
@@ -284,7 +312,7 @@ class CarWaitEvent(RouteEvent):
     new_value = models.IntegerField(null=True, blank=True)
 
     def __repr__(self) -> str:
-        return "<CarWaitEvent: [{}] {}%>".format(
+        return "<CarWaitEvent: [{}] {}>".format(
             self.time, self.new_value
         )
 
@@ -294,6 +322,45 @@ class OversizeWaitEvent(RouteEvent):
     new_value = models.IntegerField(null=True, blank=True)
 
     def __repr__(self) -> str:
-        return "<OversizeWaitEvent:[{}] {}%>".format(
+        return "<OversizeWaitEvent:[{}] {}>".format(
             self.time, self.new_value
+        )
+
+
+class InPortEvent(LocationEvent):
+    def __repr__(self) -> str:
+        return "<InPortEvent: [{}]>".format(
+            self.last_updated
+        )
+
+
+class UnderWayEvent(LocationEvent):
+    def __repr__(self) -> str:
+        return "<UnderWayEvent: [{}]>".format(
+            self.last_updated
+        )
+
+
+class OfflineEvent(LocationEvent):
+    def __repr__(self) -> str:
+        return "<OfflineEvent: [{}]>".format(
+            self.last_updated
+        )
+
+
+class HeadingEvent(LocationEvent):
+    old_value = models.CharField(max_length=8, null=True, blank=True)
+    new_value = models.CharField(max_length=8, null=True, blank=True)
+
+    def __repr__(self) -> str:
+        return "<HeadingEvent: [{}]>".format(
+            self.last_updated
+        )
+
+
+class DestinationEvent(LocationEvent):
+    destination = models.ForeignKey(Destination, null=True, blank=True, on_delete=models.DO_NOTHING)
+    def __repr__(self) -> str:
+        return "<DestinationEvent: [{}]>".format(
+            self.last_updated
         )

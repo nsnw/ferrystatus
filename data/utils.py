@@ -10,7 +10,9 @@ from datetime import datetime, timedelta
 from .models import (Terminal, Route, Ferry, Sailing, Destination, Status,
                      SailingEvent, ArrivalTimeEvent, ArrivedEvent, StatusEvent,
                      FerryEvent, DepartureTimeEvent, DepartedEvent,
-                     PercentFullEvent, CarWaitEvent, OversizeWaitEvent)
+                     PercentFullEvent, CarWaitEvent, OversizeWaitEvent,
+                     InPortEvent, UnderWayEvent, OfflineEvent, HeadingEvent,
+                     DestinationEvent)
 
 logger = logging.getLogger(__name__)
 
@@ -520,3 +522,128 @@ def get_current_conditions():
                 logger.debug("Created sailing for {}".format(sailing_time))
             else:
                 logger.debug("Sailing for {} already existed".format(sailing_time))
+
+
+def get_ferry_locations():
+    MAP_BASE = "https://orca.bcferries.com/cc/settings/includes/maps/"
+
+    route_numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '13']
+
+    routes = {}
+    for i in route_numbers:
+        url = "{}/route{}.html".format(MAP_BASE, i)
+
+        try:
+            logger.info("Querying BCF for data...")
+            response = requests.get(url)
+            if response.status_code == 200:
+                logger.info("Successfully queried BCF for data")
+                routes[i] = response.text
+            else:
+                logger.error("Could not retrieve details from the BC Ferries website: {}".format(response.status_code))
+                return False
+        except Exception as e:
+                logger.error("Could not retrieve details from the BC Ferries website. {}".format(e))
+                return False
+
+    #routes.append(open("_data/route0.html", "r").read())
+
+    for route_number in routes:
+        data = routes[route_number]
+        b = BeautifulSoup(data, 'html.parser')
+
+        for tr in b.body.table.find_all('tr')[1:]:
+            # We only want rows with 4 entries
+            if len(tr.find_all('td')) == 4:
+                (ferry, status, destination, time) = [e.text for e in tr.find_all('td')]
+                logger.debug("Found {} (-> {}, {} @ {})".format(
+                    ferry, destination, status, time
+                ))
+
+                now = datetime.now(timezone)
+                today = now.strftime("%Y-%m-%d")
+                updated_time = parse("{} {}".format(today, time))
+                updated_time = timezone.localize(updated_time)
+
+                if updated_time > now:
+                    logger.debug("Updated time was yesterday")
+                    yesterday = (datetime.now(timezone) - timedelta(days=1)).strftime("%Y-%m-%d")
+                    updated_time = parse("{} {}".format(yesterday, time))
+                    updated_time = timezone.localize(updated_time)
+
+                ferry_o, created = Ferry.objects.get_or_create(
+                    name=ferry
+                )
+
+                if created:
+                    logger.debug("Created Ferry {}".format(ferry))
+
+                if route_number in ['2', '13']:
+                    # These show a heading instead of a destination
+                    heading = destination
+
+                    if ferry_o.heading != heading:
+                        logger.debug("Heading changed from {} to {}".format(
+                            ferry_o.heading, heading
+                        ))
+
+                        event_o = HeadingEvent(
+                            ferry=ferry_o,
+                            old_value=ferry_o.heading,
+                            new_value=heading
+                        )
+                        event_o.save()
+
+                        ferry_o.heading = heading
+                        ferry_o.last_updated = updated_time
+                        ferry_o.save()
+
+                else:
+                    dest_o = Destination.objects.get(name=destination)
+
+                    if ferry_o.destination != dest_o:
+                        logger.debug("Destination changed from {} to {}".format(
+                            ferry_o.destination, dest_o
+                        ))
+
+                        event_o = DestinationEvent(
+                            ferry=ferry_o,
+                            destination=dest_o,
+                            last_updated=time
+                        )
+                        event_o.save()
+
+                        ferry_o.destination = dest_o
+                        ferry_o.last_updated = updated_time
+                        ferry_o.save()
+
+                if ferry_o.status != status:
+                    logger.debug("Status changed from {} to {}".format(
+                        ferry_o.status, status
+                    ))
+
+                    if status == "In Port":
+                        event_o = InPortEvent(
+                            ferry=ferry_o,
+                            last_updated=updated_time
+                        )
+                        event_o.save()
+                    elif status == "Under Way":
+                        event_o = UnderWayEvent(
+                            ferry=ferry_o,
+                            last_updated=updated_time
+                        )
+                        event_o.save()
+                    elif status == "Temporarily Off Line":
+                        event_o = OfflineEvent(
+                            ferry=ferry_o,
+                            last_updated=updated_time
+                        )
+                        event_o.save()
+                    else:
+                        logger.warning("Unknown status: {}".format(status))
+
+                    ferry_o.status = status
+                    ferry_o.last_updated = updated_time
+                    ferry_o.save()
+
