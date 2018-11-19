@@ -12,11 +12,15 @@ from .models import (Terminal, Route, Ferry, Sailing, Destination, Status,
                      FerryEvent, DepartureTimeEvent, DepartedEvent,
                      PercentFullEvent, CarWaitEvent, OversizeWaitEvent,
                      InPortEvent, UnderWayEvent, OfflineEvent, HeadingEvent,
-                     DestinationEvent)
+                     DestinationEvent, StoppedEvent)
 
 logger = logging.getLogger(__name__)
 
 timezone = pytz.timezone("America/Vancouver")
+
+def get_local_time(timestamp):
+    return timezone.localize(timestamp).strftime("%H:%M")
+
 
 def get_actual_departures():
     url = "{}/{}".format(settings.BCF_BASE_URL, "actualDepartures.asp")
@@ -599,7 +603,7 @@ def get_ferry_locations():
                         ferry_o.save()
 
                 else:
-                    dest_o = Destination.objects.get(name=destination)
+                    dest_o = Destination.objects.get(name__startswith=destination)
 
                     if ferry_o.destination != dest_o:
                         logger.debug("Destination changed from {} to {}".format(
@@ -630,6 +634,12 @@ def get_ferry_locations():
                         event_o.save()
                     elif status == "Under Way":
                         event_o = UnderWayEvent(
+                            ferry=ferry_o,
+                            last_updated=updated_time
+                        )
+                        event_o.save()
+                    elif status == "Stopped":
+                        event_o = StoppedEvent(
                             ferry=ferry_o,
                             last_updated=updated_time
                         )

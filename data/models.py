@@ -105,6 +105,22 @@ class Ferry(models.Model):
         except:
             return None
 
+    @property
+    def as_dict(self) -> dict:
+        response = {
+            "name": self.name,
+            "status": self.status,
+            "last_updated": self.last_updated
+        }
+
+        if self.destination:
+            response['destination'] = self.destination.name
+
+        if self.heading:
+            response['heading'] = self.heading
+
+        return response
+
     def __str__(self) -> str:
         return self.name
 
@@ -132,6 +148,7 @@ class Sailing(models.Model):
     departed = models.BooleanField(default=False)
     arrived = models.BooleanField(default=False)
     percent_full = models.IntegerField(default=None, null=True, blank=True)
+    sailing_time = models.CharField(max_length=8, null=True, blank=True)
     day_of_week = models.CharField(max_length=3, choices=[
         (tag, tag.value) for tag in DayOfWeek
     ], null=True, blank=True)
@@ -152,6 +169,36 @@ class Sailing(models.Model):
         return self.eta_or_arrival_time.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S")
 
     @property
+    def as_dict(self) -> dict:
+        response = {
+            "id": self.pk,
+            "route": self.route.name,
+            "scheduled_departure": self.scheduled_departure_local,
+            "state": self.state
+        }
+
+        if self.ferry:
+            response['ferry'] = self.ferry.name
+
+        if self.actual_departure:
+            response['actual_departure'] = self.actual_departure_local
+
+        if self.eta_or_arrival_time:
+            response['eta_or_arrival_time'] = self.eta_or_arrival_time_local
+
+        if self.status:
+            response['status'] = self.status.status
+
+        if self.percent_full:
+            response['percent_full'] = self.percent_full
+
+        response['events'] = [
+            event.as_dict for event in self.sailingevent_set.all().order_by('timestamp')
+        ]
+
+        return response
+
+    @property
     def state(self) -> str:
         if self.departed:
             if self.arrived:
@@ -160,6 +207,8 @@ class Sailing(models.Model):
                 return "Departed"
         else:
             return "Not departed"
+
+
 
     @property
     def info(self) -> str:
@@ -202,7 +251,15 @@ class SailingEvent(PolymorphicModel):
     @property
     def time(self) -> str:
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
-        return self.timestamp.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S")
+        return self.timestamp.astimezone(tz).strftime("%H:%M")
+
+    @property
+    def as_dict(self) -> str:
+        return {
+            "timestamp": self.timestamp,
+            "local_time": self.time,
+            "text": self.text
+        }
 
 
 class RouteEvent(PolymorphicModel):
@@ -240,6 +297,12 @@ class DepartureTimeEvent(SailingEvent):
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
         return self.new_departure.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S")
 
+    @property
+    def text(self) -> str:
+        return "Departure time changed to {}".format(
+            self.departure
+        )
+
     def __repr__(self) -> str:
         return "<DepartureTimeEvent: [{}] {}>".format(
             self.time, self.departure
@@ -256,6 +319,17 @@ class ArrivalTimeEvent(SailingEvent):
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
         return self.new_arrival.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S")
 
+    @property
+    def text(self) -> str:
+        if self.is_eta:
+            return "ETA changed to {}".format(
+                self.arrival
+            )
+        else:
+            return "Arrival time changed to {}".format(
+                self.arrival
+            )
+
     def __repr__(self) -> str:
         return "<ArrivalTimeEvent: [{}] {}{}>".format(
             self.time,
@@ -264,6 +338,10 @@ class ArrivalTimeEvent(SailingEvent):
         )
 
 class DepartedEvent(SailingEvent):
+    @property
+    def text(self) -> str:
+        return "Set as departed"
+
     def __repr__(self) -> str:
         return "<DepartedEvent: [{}]>".format(
             self.time
@@ -271,6 +349,10 @@ class DepartedEvent(SailingEvent):
 
 
 class ArrivedEvent(SailingEvent):
+    @property
+    def text(self) -> str:
+        return "Set as arrived"
+
     def __repr__(self) -> str:
         return "<ArrivedEvent: [{}]>".format(
             self.time
@@ -280,6 +362,10 @@ class ArrivedEvent(SailingEvent):
 class StatusEvent(SailingEvent):
     old_status = models.ForeignKey(Status, null=True, blank=True, related_name="old_status", on_delete=models.DO_NOTHING)
     new_status = models.ForeignKey(Status, null=True, blank=True, related_name="new_status", on_delete=models.DO_NOTHING)
+
+    @property
+    def text(self) -> str:
+        return "Status changed to {}".format(self.new_status)
 
     def __repr__(self) -> str:
         return "<StatusEvent: [{}] {}>".format(
@@ -291,6 +377,10 @@ class FerryEvent(SailingEvent):
     old_ferry = models.ForeignKey(Ferry, null=True, blank=True, related_name="old_ferry", on_delete=models.DO_NOTHING)
     new_ferry = models.ForeignKey(Ferry, null=True, blank=True, related_name="new_ferry", on_delete=models.DO_NOTHING)
 
+    @property
+    def text(self) -> str:
+        return "Ferry changed to {}".format(self.new_ferry.name)
+
     def __repr__(self) -> str:
         return "<FerryEvent: [{}] {}>".format(
             self.time, self.new_ferry
@@ -300,6 +390,10 @@ class FerryEvent(SailingEvent):
 class PercentFullEvent(SailingEvent):
     old_value = models.IntegerField(null=True, blank=True)
     new_value = models.IntegerField(null=True, blank=True)
+
+    @property
+    def text(self) -> str:
+        return "Sailing now {}% full".format(self.new_value)
 
     def __repr__(self) -> str:
         return "<PercentFullEvent: [{}] {}%>".format(
@@ -344,6 +438,13 @@ class UnderWayEvent(LocationEvent):
 class OfflineEvent(LocationEvent):
     def __repr__(self) -> str:
         return "<OfflineEvent: [{}]>".format(
+            self.last_updated
+        )
+
+
+class StoppedEvent(LocationEvent):
+    def __repr__(self) -> str:
+        return "<StoppedEvent: [{}]>".format(
             self.last_updated
         )
 
