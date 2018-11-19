@@ -149,7 +149,7 @@ class Sailing(models.Model):
     arrived = models.BooleanField(default=False)
     percent_full = models.IntegerField(default=None, null=True, blank=True)
     sailing_time = models.CharField(max_length=8, null=True, blank=True)
-    day_of_week = models.CharField(max_length=3, choices=[
+    day_of_week = models.CharField(max_length=16, choices=[
         (tag, tag.value) for tag in DayOfWeek
     ], null=True, blank=True)
 
