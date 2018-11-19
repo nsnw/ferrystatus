@@ -83,7 +83,7 @@ class Route(models.Model):
 class Ferry(models.Model):
     name = models.CharField(max_length=64, null=False, blank=False)
     destination = models.ForeignKey(Destination, null=True, blank=True, on_delete=models.DO_NOTHING)
-    status = models.CharField(max_length=16, choices=[
+    status = models.CharField(max_length=32, choices=[
         (tag, tag.value) for tag in FerryStatus
     ], null=True, blank=True)
     last_updated = models.DateTimeField(auto_now=True)
