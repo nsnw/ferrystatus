@@ -1,0 +1,7 @@
+{
+  "scripts": {
+    "dokku": {
+      "postdeploy": "python /app/manage.py migrate"
+    }
+  }
+}
