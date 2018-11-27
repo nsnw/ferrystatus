@@ -167,6 +167,10 @@ LOGGING = {
         'data': {
             'handlers': ['console', 'file'],
             'level': 'DEBUG'
+        },
+        'api': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG'
         }
     }
 }

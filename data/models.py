@@ -1,9 +1,12 @@
 from django.db import models
 from django.conf import settings
 from polymorphic.models import PolymorphicModel
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 from enum import Enum
+import logging
+
+logger = logging.getLogger(__name__)
 
 BCF_URL_BASE = "https://www.bcferries.com/current_conditions"
 
@@ -51,6 +54,7 @@ class Route(models.Model):
     route_code = models.IntegerField(null=False, blank=False)
     car_waits = models.IntegerField(default=None, null=True, blank=True)
     oversize_waits = models.IntegerField(default=None, null=True, blank=True)
+    duration = models.IntegerField(null=True, blank=True)
 
     @property
     def url(self) -> str:
@@ -68,6 +72,21 @@ class Route(models.Model):
         ).order_by('scheduled_departure').first()
 
         return sailing
+
+    @property
+    def as_dict(self) -> dict:
+        response = {
+            "id": self.pk,
+            "name": self.name,
+            "source": self.source.name,
+            "destination": self.destination.name,
+            "car_waits": self.car_waits,
+            "oversize_waits": self.oversize_waits,
+            "next_sailing": self.next_sailing.as_dict,
+            "duration": self.duration
+        }
+
+        return response
 
     def __str__(self) -> str:
         return "{} -> {} ({})".format(
@@ -142,6 +161,7 @@ class Sailing(models.Model):
     route = models.ForeignKey(Route, null=False, blank=False, on_delete=models.DO_NOTHING)
     ferry = models.ForeignKey(Ferry, null=True, blank=True, on_delete=models.DO_NOTHING)
     scheduled_departure = models.DateTimeField(null=False, blank=False)
+    scheduled_arrival = models.DateTimeField(null=True, blank=True)
     actual_departure = models.DateTimeField(null=True, blank=True)
     eta_or_arrival_time = models.DateTimeField(null=True, blank=True)
     status = models.ForeignKey(Status, null=True, blank=True, on_delete=models.DO_NOTHING)
@@ -152,11 +172,19 @@ class Sailing(models.Model):
     day_of_week = models.CharField(max_length=16, choices=[
         (tag, tag.value) for tag in DayOfWeek
     ], null=True, blank=True)
+    late_leaving = models.IntegerField(null=True, blank=True)
+    late_arriving = models.IntegerField(null=True, blank=True)
+    duration = models.IntegerField(null=True, blank=True)
 
     @property
     def scheduled_departure_local(self) -> str:
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
         return self.scheduled_departure.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S")
+
+    @property
+    def scheduled_arrival_local(self) -> str:
+        tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
+        return self.scheduled_arrival.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S")
 
     @property
     def actual_departure_local(self) -> str:
@@ -169,11 +197,33 @@ class Sailing(models.Model):
         return self.eta_or_arrival_time.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S")
 
     @property
+    def scheduled_departure_hour_minute(self) -> str:
+        tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
+        return self.scheduled_departure.astimezone(tz).strftime("%-I:%M%p").lower()
+
+    @property
+    def scheduled_arrival_hour_minute(self) -> str:
+        tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
+        return self.scheduled_arrival.astimezone(tz).strftime("%-I:%M%p").lower()
+
+    @property
+    def actual_departure_hour_minute(self) -> str:
+        tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
+        return self.actual_departure.astimezone(tz).strftime("%-I:%M%p").lower()
+
+    @property
+    def eta_or_arrival_time_hour_minute(self) -> str:
+        tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
+        return self.eta_or_arrival_time.astimezone(tz).strftime("%-I:%M%p").lower()
+
+    @property
     def as_dict(self) -> dict:
         response = {
             "id": self.pk,
             "route": self.route.name,
+            "route_id": self.route.id,
             "scheduled_departure": self.scheduled_departure_local,
+            "scheduled_departure_hour_minute": self.scheduled_departure_hour_minute,
             "state": self.state
         }
 
@@ -182,15 +232,30 @@ class Sailing(models.Model):
 
         if self.actual_departure:
             response['actual_departure'] = self.actual_departure_local
+            response['actual_departure_hour_minute'] = self.actual_departure_hour_minute
 
         if self.eta_or_arrival_time:
             response['eta_or_arrival_time'] = self.eta_or_arrival_time_local
+            response['eta_or_arrival_time_hour_minute'] = self.eta_or_arrival_time_hour_minute
+
+        if self.scheduled_arrival:
+            response['scheduled_arrival'] = self.scheduled_arrival
+            response['scheduled_arrival_hour_minute'] = self.scheduled_arrival_hour_minute
 
         if self.status:
             response['status'] = self.status.status
 
         if self.percent_full:
             response['percent_full'] = self.percent_full
+
+        if self.duration:
+            response['duration'] = self.duration
+
+        if self.late_leaving:
+            response['late_leaving'] = self.late_leaving
+
+        if self.late_arriving:
+            response['late_arriving'] = self.late_arriving
 
         response['events'] = [
             event.as_dict for event in self.sailingevent_set.all().order_by('timestamp')
@@ -236,6 +301,67 @@ class Sailing(models.Model):
             tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
             day_of_week = self.scheduled_departure.astimezone(tz).strftime("%A")
             self.day_of_week = day_of_week
+
+        if not self.sailing_time:
+            tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
+            self.sailing_time = self.scheduled_departure.astimezone(tz).strftime("%H:%M")
+
+        if not self.duration and self.arrived is True:
+            td = self.eta_or_arrival_time - self.actual_departure
+            self.duration = td.seconds / 60
+            logger.debug("Sailing duration was {}".format(self.duration))
+
+        if not self.scheduled_arrival:
+            self.scheduled_arrival = self.scheduled_departure + timedelta(minutes=self.route.duration)
+            logger.debug("Set scheduled arrival to {}".format(self.scheduled_arrival_hour_minute))
+
+        if not self.late_leaving and self.departed is True:
+            if self.actual_departure < self.scheduled_departure:
+                logger.debug("Sailing left early")
+                td = self.scheduled_departure - self.actual_departure
+                early = True
+            else:
+                td = self.actual_departure - self.scheduled_departure
+                early = False
+
+            difference = td.seconds / 60
+
+            if early:
+                self.late_leaving = -difference
+            else:
+                self.late_leaving = difference
+
+            logger.debug("Sailing scheduled: {}, left at {}".format(
+                self.scheduled_departure_hour_minute, self.actual_departure_hour_minute
+            ))
+            logger.debug("Sailing was {} mins {} leaving".format(
+                difference,
+                "early" if early else "late"
+            ))
+
+        if not self.late_arriving and self.arrived is True:
+            if self.eta_or_arrival_time < self.scheduled_arrival:
+                logger.debug("Sailing arrived early")
+                td = self.scheduled_arrival - self.eta_or_arrival_time
+                early = True
+            else:
+                td = self.eta_or_arrival_time - self.scheduled_arrival
+                early = False
+
+            difference = td.seconds / 60
+
+            if early:
+                self.late_arriving = -difference
+            else:
+                self.late_arriving = difference
+
+            logger.debug("Sailing scheduled: {}, arrived at {}".format(
+                self.scheduled_arrival_hour_minute, self.eta_or_arrival_time_hour_minute
+            ))
+            logger.debug("Sailing was {} mins {} arriving".format(
+                difference,
+                "early" if early else "late"
+            ))
 
         super(Sailing, self).save(*args, **kwargs)
 
@@ -340,7 +466,7 @@ class ArrivalTimeEvent(SailingEvent):
 class DepartedEvent(SailingEvent):
     @property
     def text(self) -> str:
-        return "Set as departed"
+        return "Sailing has departed"
 
     def __repr__(self) -> str:
         return "<DepartedEvent: [{}]>".format(
@@ -351,7 +477,7 @@ class DepartedEvent(SailingEvent):
 class ArrivedEvent(SailingEvent):
     @property
     def text(self) -> str:
-        return "Set as arrived"
+        return "Sailing has arrived"
 
     def __repr__(self) -> str:
         return "<ArrivedEvent: [{}]>".format(

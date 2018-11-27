@@ -59,6 +59,21 @@ def get_actual_departures():
         print("-> source: {} destination: {}".format(source, destination))
         print("-> {} (route {})".format(source_code, route_code))
 
+        sailing_time = re.search("Sailing time: (.*)", sailing_time).groups()[0]
+        if sailing_time != "Variable":
+            times = re.search(r'(([0-9]+) hours?\s?)?(([0-9]+) minutes)?.*', sailing_time).groups()
+            logger.info(times)
+
+            if times[3]:
+                minutes = int(times[3])
+            else:
+                minutes = 0
+
+            if times[1]:
+                minutes += int(times[1]) * 60
+
+            logger.info("Minutes: {}".format(minutes))
+
         terminals[source] = source_code
 
         sailings = routes.popleft()
@@ -68,8 +83,8 @@ def get_actual_departures():
             "source": source,
             "destination": destination,
             "route_name": route_name,
-            "sailing_time": sailing_time,
-            "route_code": route_code
+            "route_code": route_code,
+            "sailing_time": minutes
         }
 
         sailings_list = []
@@ -98,6 +113,8 @@ def get_actual_departures():
         destination_name = route['destination']
         source_name = route['source']
         source_code = route['source_code']
+
+        logger.info("Sailing time is '{}'".format(sailing_time))
 
         # Source terminal
         source_o, created = Terminal.objects.get_or_create(
@@ -182,6 +199,11 @@ def get_actual_departures():
             logger.info("Found route {} ({} -> {})".format(
                 route_o.route_code, route_o.source, route_o.destination
             ))
+
+        if not route_o.duration and route['sailing_time']:
+            logger.info("Setting sailing time to {}".format(route['sailing_time']))
+            route_o.duration = route['sailing_time']
+            route_o.save()
 
         for sailing in route['sailings']:
             logger.debug(">>>>>> Parsing new sailing")
@@ -270,13 +292,13 @@ def get_actual_departures():
                     sailing_o.actual_departure, actual
                 ))
 
-                if sailing_o.actual_departure is None:
-                    logger.info("Sailing has departed")
+                #if sailing_o.actual_departure is None:
+                #    logger.info("Sailing has departed")
 
-                    departed_o = DepartedEvent(
-                        sailing=sailing_o
-                    )
-                    departed_o.save()
+                #    departed_o = DepartedEvent(
+                #        sailing=sailing_o
+                #    )
+                #    departed_o.save()
 
                 event_o = DepartureTimeEvent(
                     sailing=sailing_o,

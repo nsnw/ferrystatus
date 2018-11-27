@@ -3,7 +3,9 @@ import PropTypes from "prop-types";
 class DataProvider extends Component {
   static propTypes = {
     endpoint: PropTypes.string.isRequired,
-    render: PropTypes.func.isRequired
+    render: PropTypes.func.isRequired,
+    routeId: PropTypes.string,
+    sailingId: PropTypes.string
   };
   state = {
       data: [],
@@ -11,7 +13,13 @@ class DataProvider extends Component {
       placeholder: "Loading..."
     };
   componentDidMount() {
-    fetch(this.props.endpoint)
+    let endpoint = this.props.endpoint;
+    if (this.props.routeId)
+      endpoint += "/route/" + this.props.routeId;
+    else if (this.props.sailingId)
+      endpoint += "/" + this.props.sailingId;
+
+    fetch(endpoint)
       .then(response => {
         if (response.status !== 200) {
           return this.setState({ placeholder: "Something went wrong" });
