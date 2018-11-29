@@ -78,7 +78,7 @@ def get_sailing_by_route_id(request, route_id: int):
             s.as_dict for s in Sailing.objects.filter(
                 route__id=route_id
             ).filter(
-                Q(scheduled_departure__gt=now)|Q(eta_or_arrival_time__gt=hour_ago)
+                Q(scheduled_departure__gt=hour_ago)|Q(eta_or_arrival_time__gt=hour_ago)
             ).order_by('scheduled_departure')
         ]
     except Route.DoesNotExist:
