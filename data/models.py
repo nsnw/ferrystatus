@@ -82,7 +82,7 @@ class Route(models.Model):
             "destination": self.destination.name,
             "car_waits": self.car_waits,
             "oversize_waits": self.oversize_waits,
-            "next_sailing": self.next_sailing.as_dict,
+            "next_sailing": self.next_sailing.as_dict if self.next_sailing else None,
             "duration": self.duration
         }
 
