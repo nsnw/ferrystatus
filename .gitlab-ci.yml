@@ -9,4 +9,4 @@ stages:
 
 test:
   stage: test
-  scripts: ./manage.py test
+  script: ./manage.py test
