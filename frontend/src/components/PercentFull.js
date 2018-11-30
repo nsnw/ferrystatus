@@ -21,7 +21,7 @@ PercentFull.propTypes = {
 };
 
 const PercentFullLarge = ({ percentFull }) =>
-  <h1 className="is-size-1"><strong className={"has-text-" + getPercentFullColour(percentFull)}>{percentFull + "%"}</strong></h1>
+  <h1 className="is-size-2"><strong className={"has-text-" + getPercentFullColour(percentFull)}>{percentFull + "%"}</strong></h1>
 
 PercentFullLarge.propTypes = {
   percentFull: PropTypes.number.isRequired

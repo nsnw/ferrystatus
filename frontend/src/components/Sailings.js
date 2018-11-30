@@ -9,6 +9,11 @@ const AllSailings = (props) => (
                 render={data => <AllSailingsTable data={data.response} />} />
 );
 
+const ReallyAllSailings = (props) => (
+  <DataProvider endpoint="/api/all-sailings"
+                render={data => <AllSailingsTable data={data.response} />} />
+);
+
 const RouteSailings = (props) => (
   <DataProvider endpoint="/api/sailings" routeId={props.match.params.routeId}
                 render={data => <RouteSailingsTable data={data.response} />} />
@@ -21,4 +26,4 @@ const Sailing = (props) => (
 //const wrapper = document.getElementById("app");
 //wrapper ? ReactDOM.render(<Sailings />, wrapper) : null;
 //export default Sailings
-export { AllSailings, RouteSailings, Sailing }
+export { ReallyAllSailings, AllSailings, RouteSailings, Sailing }

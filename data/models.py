@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Avg, Max, Min
 from django.conf import settings
 from polymorphic.models import PolymorphicModel
 from datetime import datetime, timedelta
@@ -217,6 +218,48 @@ class Sailing(models.Model):
         return self.eta_or_arrival_time.astimezone(tz).strftime("%-I:%M%p").lower()
 
     @property
+    def aggregate_percent_full(self) -> float:
+        aggregate = Sailing.objects.filter(
+            route__id=self.route.id,
+            sailing_time=self.sailing_time,
+            day_of_week=self.day_of_week
+        ).aggregate(
+            average=Avg('percent_full'),
+            minimum=Min('percent_full'),
+            maximum=Max('percent_full')
+        )
+
+        return aggregate
+
+    @property
+    def aggregate_leaving(self) -> float:
+        aggregate = Sailing.objects.filter(
+            route__id=self.route.id,
+            sailing_time=self.sailing_time,
+            day_of_week=self.day_of_week
+        ).aggregate(
+            average=Avg('late_leaving'),
+            minimum=Min('late_leaving'),
+            maximum=Max('late_leaving')
+        )
+
+        return aggregate
+
+    @property
+    def aggregate_arriving(self) -> float:
+        aggregate = Sailing.objects.filter(
+            route__id=self.route.id,
+            sailing_time=self.sailing_time,
+            day_of_week=self.day_of_week
+        ).aggregate(
+            average=Avg('late_arriving'),
+            minimum=Min('late_arriving'),
+            maximum=Max('late_arriving')
+        )
+
+        return aggregate
+
+    @property
     def as_dict(self) -> dict:
         response = {
             "id": self.pk,
@@ -224,7 +267,12 @@ class Sailing(models.Model):
             "route_id": self.route.id,
             "scheduled_departure": self.scheduled_departure_local,
             "scheduled_departure_hour_minute": self.scheduled_departure_hour_minute,
-            "state": self.state
+            "state": self.state,
+            "aggregates": {
+                "percent_full": self.aggregate_percent_full,
+                "leaving": self.aggregate_leaving,
+                "arriving": self.aggregate_arriving
+            }
         }
 
         if self.ferry:

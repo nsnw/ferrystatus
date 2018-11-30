@@ -20,6 +20,18 @@ def get_all(request):
     return response(request, sailings)
 
 
+def get_really_all(request):
+    tz = timezone('UTC')
+    now = tz.localize(datetime.now())
+    sailings = [
+        sailing.as_dict for sailing in Sailing.objects.filter(
+            Q(status__status="Cancelled")|Q(eta_or_arrival_time__gt=now)
+        )
+    ]
+
+    return response(request, sailings)
+
+
 def get_sailing(request, sailing: int):
     try:
         sailing = Sailing.objects.get(pk=sailing)

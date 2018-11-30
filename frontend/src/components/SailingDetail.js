@@ -37,13 +37,31 @@ const SailingDetail = ({ data }) =>
             <th>Status</th>
             <th>Ferry</th>
             <th>Availability</th>
+            {data.duration && <th>Duration</th> }
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td><h1 className="is-size-1"><strong className={"has-text-" + getDepartedStateColour(data.state)}>{data.state}</strong></h1></td>
-            <td><h1 className="is-size-1"><strong>{data.ferry}</strong></h1></td>
+            <td><h1 className="is-size-2"><strong className={"has-text-" + getDepartedStateColour(data.state)}>{data.state}</strong></h1></td>
+            <td><h1 className="is-size-2"><strong>{data.ferry}</strong></h1></td>
             <td>{!data.percent_full ? ( <p></p> ) : ( <PercentFullLarge percentFull={data.percent_full} /> )}</td>
+            {data.duration && <td><h1 className="is-size-2">{data.duration} min</h1></td> }
+          </tr>
+        </tbody>
+      </table>
+      <table className="table is-striped">
+        <thead>
+          <tr>
+            <th>Average full</th>
+            <th>Average early/late leaving</th>
+            <th>Average early/late arriving</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><h1 className="is-size-3">{data.aggregates.percent_full.average}%</h1></td>
+            <td><h1 className="is-size-3">{data.aggregates.leaving.average} min</h1></td>
+            <td><h1 className="is-size-3">{data.aggregates.arriving.average} min</h1></td>
           </tr>
         </tbody>
       </table>
