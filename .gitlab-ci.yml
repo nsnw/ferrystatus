@@ -11,4 +11,4 @@ stages:
 
 test:
   stage: test
-  script: ./manage.py test
+  script: python3 ./manage.py test
