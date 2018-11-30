@@ -6,5 +6,5 @@ const Ferries = () => (
   <DataProvider endpoint="api/ferries" 
                 render={data => <FerriesTable data={data.response} />} />
 );
-const wrapper = document.getElementById("app");
-wrapper ? ReactDOM.render(<Ferries />, wrapper) : null;
+
+export { Ferries }

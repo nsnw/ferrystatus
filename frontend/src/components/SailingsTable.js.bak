@@ -63,16 +63,31 @@ const AllSailingsTable = ({ data }) =>
       <h1 className="title">
         <strong>All sailings</strong>
       </h1>
-      {data.map(el => (
-        <div key={el.id} className="columns has-background-white-ter is-multiline">
-          <div className="column is-4"><Link to={`/sailings/${el.id}`}><strong>{el.route}</strong></Link></div>
-          <div className="column is-2">{formatDeparture(el)}</div>
-          <div className="column is-2">{formatStatus(el)}</div>
-          <div className="column is-2"><strong>{el.ferry}</strong></div>
-          <div className="column is-2">{!el.percent_full ? ( <p></p> ) : ( <PercentFull percentFull={el.percent_full} /> )}</div>
-          <div className="column is-12 is-divider is-marginless"></div>
-        </div>
-      ))}
+      <table className="table is-striped">
+        <thead>
+          <tr>
+            <th>Route</th>
+            <th>Departure time</th>
+            <th>Status</th>
+            <th>Ferry</th>
+            <th width="200px">Full</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map(el => (
+            <>
+            <tr key={el.id}>
+              <td><Link to={`/sailings/${el.id}`}><strong>{el.route}</strong></Link></td>
+              <td>{formatDeparture(el)}</td>
+              <td>{formatStatus(el)}</td>
+              <td><strong>{el.ferry}</strong></td>
+              <td>{!el.percent_full ? ( <p></p> ) : ( <PercentFull percentFull={el.percent_full} /> )}</td>
+            </tr>
+            <tr>{formatStatusText(el)}</tr>
+            </>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 AllSailingsTable.propTypes = {
@@ -90,14 +105,38 @@ const RouteSailingsTable = ({ data }) =>
       <h3 className="subtitle">
         <Link to="/sailings"><strong className="has-text-link">All sailings</strong></Link>
       </h3>
+      <table className="table is-striped">
+        <thead>
+          <tr>
+            <th>Route</th>
+            <th>Departure time</th>
+            <th>Status</th>
+            <th>Ferry</th>
+            <th width="200px">Full</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map(el => (
+            <>
+            <tr key={el.id}>
+              <td><Link to={`/sailings/${el.id}`}><strong>{el.route}</strong></Link></td>
+              <td>{formatDeparture(el)}</td>
+              <td>{formatStatus(el)}</td>
+              <td><strong>{el.ferry}</strong></td>
+              <td>{!el.percent_full ? ( <p></p> ) : ( <PercentFull percentFull={el.percent_full} /> )}</td>
+            </tr>
+            <tr>{formatStatusText(el)}</tr>
+            </>
+          ))}
+        </tbody>
+      </table>
       {data.map(el => (
-        <div key={el.id} className="columns has-background-white-ter is-multiline">
-          <div className="column is-4"><Link to={`/sailings/${el.id}`}><strong>{el.route}</strong></Link></div>
-          <div className="column is-2">{formatDeparture(el)}</div>
-          <div className="column is-2">{formatStatus(el)}</div>
-          <div className="column is-2"><strong>{el.ferry}</strong></div>
-          <div className="column is-2">{!el.percent_full ? ( <p></p> ) : ( <PercentFull percentFull={el.percent_full} /> )}</div>
-          <div className="column is-12 is-divider is-marginless"></div>
+        <div className="columns">
+          <div className="column"><Link to={`/sailings/${el.id}`}><strong>{el.route}</strong></Link></div>
+          <div className="column">{formatDeparture(el)}</div>
+          <div className="column">{formatStatus(el)}</div>
+          <div className="column"><strong>{el.ferry}</strong></div>
+          <div className="column">{!el.percent_full ? ( <p></p> ) : ( <PercentFull percentFull={el.percent_full} /> )}</div>
         </div>
       ))}
     </div>

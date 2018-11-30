@@ -48,29 +48,17 @@ const AllRoutesTable = ({ data }) =>
       <h1 className="title">
         <strong>All routes</strong>
       </h1>
-      <table className="table is-striped">
-        <thead>
-          <tr>
-            <th>Route</th>
-            <th>Next sailing</th>
-            <th>Ferry</th>
-            <th width="200px">Full</th>
-            <th colSpan="2">Waits</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map(el => (
-            <tr key={el.id}>
-              <td><Link to={`/sailings/route/${el.id}`}><strong>{el.name}</strong></Link></td>
-              <td>{formatDeparture(el.next_sailing)}</td>
-              <td>{el.next_sailing.ferry}</td>
-              <td>{!el.next_sailing.percent_full ? ( <p></p> ) : ( <PercentFull percentFull={el.next_sailing.percent_full} /> )}</td>
-              <td>{el.car_waits}</td>
-              <td>{el.oversize_waits}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {data.map(el => (
+        <div key={el.id} className="columns has-background-white-ter is-multiline">
+          <div className="column is-4"><Link to={`/sailings/route/${el.id}`}><strong>{el.name}</strong></Link></div>
+          <div className="column is-1">{formatDeparture(el.next_sailing)}</div>
+          <div className="column is-2">{el.next_sailing.ferry}</div>
+          <div className="column is-3">{!el.next_sailing.percent_full ? ( <p></p> ) : ( <PercentFull percentFull={el.next_sailing.percent_full} /> )}</div>
+          <div className="column is-1">{el.car_waits} 🚗</div>
+          <div className="column is-1">{el.oversize_waits} 🚚</div>
+          <div className="column is-12 is-divider is-marginless"></div>
+        </div>
+      ))}
     </div>
   );
 AllRoutesTable.propTypes = {
