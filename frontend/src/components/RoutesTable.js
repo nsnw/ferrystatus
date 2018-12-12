@@ -59,8 +59,9 @@ const AllRoutesTable = ({ data }) =>
   ) : (
     <div className="column">
       <h1 className="title">
-        <strong>All routes</strong>
+        <strong>Next sailings</strong>
       </h1>
+      <p></p>
       {data.map(el => (
         <div key={el.id} className="row mb-4">
           <div className="col-12 row pr-0">
@@ -82,8 +83,8 @@ const AllRoutesTable = ({ data }) =>
                 </Link>
               </div>
               <div className="col-8 row pr-0">
-                <div className="col-lg-8 col-12 text-center p-0"><h5><strong>{el.next_sailing.ferry}</strong></h5></div>
-                <div className="col-lg-4 col-12 p-2">{!el.next_sailing.percent_full ? ( <p></p> ) : ( <PercentFull percentFull={el.next_sailing.percent_full} /> )}</div>
+                <div className="col-lg-8 col-12 text-center p-0 flex-column justify-content-center card card-block"><h5><strong>{el.next_sailing.ferry}</strong></h5></div>
+                <div className="col-lg-4 col-12 p-2 flex-column justify-content-center card card-block">{!el.next_sailing.percent_full ? ( <p></p> ) : ( <PercentFull percentFull={el.next_sailing.percent_full} /> )}</div>
               </div>
             </div>
           </div>
