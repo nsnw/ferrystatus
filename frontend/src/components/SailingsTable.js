@@ -64,13 +64,12 @@ const AllSailingsTable = ({ data }) =>
         <strong>All sailings</strong>
       </h1>
       {data.map(el => (
-        <div key={el.id} className="columns has-background-white-ter is-multiline">
-          <div className="column is-4"><Link to={`/sailings/${el.id}`}><strong>{el.route}</strong></Link></div>
-          <div className="column is-2">{formatDeparture(el)}</div>
-          <div className="column is-2">{formatStatus(el)}</div>
-          <div className="column is-2"><strong>{el.ferry}</strong></div>
-          <div className="column is-2">{!el.percent_full ? ( <p></p> ) : ( <PercentFull percentFull={el.percent_full} /> )}</div>
-          <div className="column is-12 is-divider is-marginless"></div>
+        <div key={el.id} className="row bg-light mb-2">
+          <div className="col-6"><Link to={`/sailings/${el.id}`}><strong>{el.route}</strong></Link></div>
+          <div className="col-3">{formatDeparture(el)}</div>
+          <div className="col-3">{formatStatus(el)}</div>
+          <div className="col-6"><strong>{el.ferry}&nbsp;</strong></div>
+          <div className="col-6">{!el.percent_full ? ( <p></p> ) : ( <PercentFull percentFull={el.percent_full} /> )}</div>
         </div>
       ))}
     </div>

@@ -1,34 +1,34 @@
-<nav class="navbar is-info" role="navigation" aria-label="main navigation">
-  <div class="navbar-brand">
-    <a class="navbar-item" href="/">
-      <b>🌊 FerryStatus</b>
-    </a>
+<nav class="navbar navbar-default navbar-expand-lg navbar-dark bg-primary" role="navigation" aria-label="main navigation">
+  <a class="navbar-brand" href="/">
+    <b>🌊 FerryStatus</b>
+  </a>
 
-    <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navMenu">
-      <span aria-hidden="true"></span>
-      <span aria-hidden="true"></span>
-      <span aria-hidden="true"></span>
-    </a>
-  </div>
+  <button class="navbar-toggler" onclick="$('#navbarSupportedContent').toggleClass('collapse')" type="button" data-toggle="collapse" data-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
 
-  <div id="navMenu" class="navbar-menu">
-    <div class="navbar-start">
-      <a class="navbar-item" href="/routes">
+  <div class="collapse navbar-collapse" id="navbarSupportedContent">
+    <ul class="navbar-nav mr-auto">
+      <li class="nav-item active">
+        <a class="nav-link" href="/routes">
         Routes
-      </a>
-
-      <a class="navbar-item" href="/sailings">
+        </a>
+      </li>
+      <li class="nav-item active">
+        <a class="nav-link" href="/sailings">
         Sailings
-      </a>
-
-      <a class="navbar-item" href="/ferries">
+        </a>
+      </li>
+      <li class="nav-item active">
+        <a class="nav-link" href="/ferries">
         Ferries
-      </a>
-
-      <a class="navbar-item" href="/about">
+        </a>
+      </li>
+      <li class="nav-item active">
+        <a class="nav-link" href="/about">
         About
-      </a>
-
-    </div>
+        </a>
+      </li>
+    </ul>
   </div>
 </nav>

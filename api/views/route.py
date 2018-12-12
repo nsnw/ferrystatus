@@ -12,7 +12,7 @@ def get_all(request):
     #now = tz.localize(datetime.now())
     #hour_ago = now - timedelta(hours=1)
     routes = [
-        route.as_dict for route in Route.objects.all()
+        route.as_dict for route in Route.objects.all().order_by('route_code')
     ]
 
     return response(request, routes)

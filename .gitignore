@@ -6,3 +6,4 @@ db.sqlite3
 _data
 *.log
 node_modules
+postgres-dev/

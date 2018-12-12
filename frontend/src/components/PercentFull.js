@@ -14,7 +14,9 @@ function getPercentFullColour(value) {
 
 
 const PercentFull = ({ percentFull }) =>
-  <progress className={"progress is-" + getPercentFullColour(percentFull)} value={percentFull} max="100">{percentFull + "%"}</progress>
+  <div className="progress">
+    <div className={"progress-bar bg-" + getPercentFullColour(percentFull)} role="progressbar" style={{width: percentFull + "%"}} aria-valuenow={percentFull} aria-valuemin="0" aria-valuemax="100"></div>
+  </div>
 
 PercentFull.propTypes = {
   percentFull: PropTypes.number.isRequired

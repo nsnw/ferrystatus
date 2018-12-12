@@ -4,6 +4,10 @@ import PropTypes from "prop-types";
 import key from "weak-key";
 import { PercentFull } from "./PercentFull"
 
+function randomPercent() {
+  return Math.floor((Math.random() * 100));
+}
+
 function getDepartedStateColour(value) {
   let state = value;
 
@@ -15,14 +19,23 @@ function getDepartedStateColour(value) {
     return "success"
 };
 
+function getWaitColour(value) {
+  let waits = value;
+
+  if (waits == 0)
+    return "success"
+  else if (waits == 1 )
+    return "warning"
+  else if (waits > 1 )
+    return "danger"
+  else
+    return "secondary"
+};
+
 function formatDeparture(sailing) {
   var state;
 
-  if (sailing.actual_departure)
-    state = <span>{sailing.scheduled_departure_hour_minute} <i>({sailing.actual_departure_hour_minute})</i></span>
-  else
-    state = <span>{sailing.scheduled_departure_hour_minute}</span>
-
+  state = <span className="align-middle">{sailing.scheduled_departure_hour_minute}</span>
   return state;
 };
 
@@ -49,14 +62,31 @@ const AllRoutesTable = ({ data }) =>
         <strong>All routes</strong>
       </h1>
       {data.map(el => (
-        <div key={el.id} className="columns has-background-white-ter is-multiline">
-          <div className="column is-4"><Link to={`/sailings/route/${el.id}`}><strong>{el.name}</strong></Link></div>
-          <div className="column is-1">{formatDeparture(el.next_sailing)}</div>
-          <div className="column is-2">{el.next_sailing.ferry}</div>
-          <div className="column is-3">{!el.next_sailing.percent_full ? ( <p></p> ) : ( <PercentFull percentFull={el.next_sailing.percent_full} /> )}</div>
-          <div className="column is-1">{el.car_waits} 🚗</div>
-          <div className="column is-1">{el.oversize_waits} 🚚</div>
-          <div className="column is-12 is-divider is-marginless"></div>
+        <div key={el.id} className="row mb-4">
+          <div className="col-12 row pr-0">
+            <div className="col-10 p-1 bg-primary">
+              <Link to={`/sailings/route/${el.id}`}>
+                <strong className="text-white">{el.name}</strong>
+              </Link>
+            </div>
+            <div className="col-2 row p-0 mr-0">
+              <div className={"col-6 text-center p-0 bg-" + getWaitColour(el.car_waits)}>🚗</div>
+              <div className={"col-6 text-center p-0 bg-" + getWaitColour(el.oversize_waits)}>🚚</div>
+            </div>
+          </div>
+          <div className="row col-12 pr-0">
+            <div className="col-12 row pr-0">
+              <div className="col-4 pt-2 bg-dark text-white text-center">
+                <Link to={`/sailings/${el.next_sailing.id}`}>
+                  <h2><strong className="text-white">{formatDeparture(el.next_sailing)}</strong></h2>
+                </Link>
+              </div>
+              <div className="col-8 row pr-0">
+                <div className="col-lg-8 col-12 text-center p-0"><h5><strong>{el.next_sailing.ferry}</strong></h5></div>
+                <div className="col-lg-4 col-12 p-2">{!el.next_sailing.percent_full ? ( <p></p> ) : ( <PercentFull percentFull={el.next_sailing.percent_full} /> )}</div>
+              </div>
+            </div>
+          </div>
         </div>
       ))}
     </div>
