@@ -2,6 +2,7 @@ import requests
 import re
 import logging
 import pytz
+import sys
 from bs4 import BeautifulSoup
 from django.conf import settings
 from collections import deque
@@ -421,14 +422,20 @@ def get_current_conditions():
                     j_sailings = []
                     for sailing in sailings:
                         next_sailing = sailing.td.text
-                        percent_full = int(sailing.td.next_sibling.text.split('% ')[0])
+                        if sailing.td.next_sibling.text == "Cancelled":
+                            j_sailings.append({
+                                'time': next_sailing,
+                                'cancelled': True
+                            })
+                        else:
+                            percent_full = int(sailing.td.next_sibling.text.split('% ')[0])
 
-                        sailing_details.update({next_sailing: percent_full})
+                            sailing_details.update({next_sailing: percent_full})
 
-                        j_sailings.append({
-                            'time': next_sailing,
-                            'percent_full': percent_full
-                        })
+                            j_sailings.append({
+                                'time': next_sailing,
+                                'percent_full': percent_full,
+                            })
 
                     j_route['sailings'] = j_sailings
 
@@ -506,23 +513,27 @@ def get_current_conditions():
                     scheduled_departure=sailing_time
                 )
 
-                percent_full = sailing['percent_full']
+                if 'cancelled' in sailing:
+                    logger.info("Sailing has been cancelled")
+                else:
+                    percent_full = sailing['percent_full']
 
-                if sailing_o.percent_full != percent_full:
-                    logger.debug("Percent full has changed ({} -> {})".format(
-                        sailing_o.percent_full, percent_full
-                    ))
+                    if sailing_o.percent_full != percent_full:
+                        logger.debug("Percent full has changed ({} -> {})".format(
+                            sailing_o.percent_full, percent_full
+                        ))
 
-                    percentfull_o = PercentFullEvent(
-                        sailing=sailing_o,
-                        old_value=sailing_o.percent_full,
-                        new_value=percent_full
-                    )
+                        percentfull_o = PercentFullEvent(
+                            sailing=sailing_o,
+                            old_value=sailing_o.percent_full,
+                            new_value=percent_full
+                        )
 
-                    sailing_o.percent_full = percent_full
+                        sailing_o.percent_full = percent_full
 
-                    percentfull_o.save()
-                    sailing_o.save()
+                        percentfull_o.save()
+
+                sailing_o.save()
 
         for sailing in route['later_sailings']:
             logger.debug("Found later sailing {}".format(sailing))
