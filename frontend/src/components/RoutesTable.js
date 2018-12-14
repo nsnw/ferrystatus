@@ -40,10 +40,14 @@ function formatRibbon(sailing) {
 
   if (sailing.status == "Cancelled")
     return <div className="corner-ribbon red">Cancelled</div>
+  else if (sailing.status && sailing.status != "On Time")
+    return <div className="corner-ribbon turquoise">Delayed</div>
+  else if (sailing.percent_full > 90)
+    return <div className="corner-ribbon orange">{sailing.percent_full}% full</div>
   else if (ts.date() != now.date())
     return <div className="corner-ribbon purple">Tomorrow</div>
   else
-    return null
+    return <div className="corner-ribbon green">On time</div>
 
 };
 
@@ -82,7 +86,7 @@ const AllRoutesTable = ({ data }) =>
       {data.map(el => (
         <div key={el.id} className="row mb-4">
           <div className="col-12 row pr-0">
-            <div className="col-10 p-1 pl-2 bg-primary">
+            <div className="col-10 p-1 pl-3 pt-2 bg-primary">
               <Link to={`/sailings/route/${el.id}`}>
                 <strong className="text-white">{el.name}</strong>
               </Link>
