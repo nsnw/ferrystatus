@@ -15,6 +15,10 @@ from .models import (Terminal, Route, Ferry, Sailing, Destination, Status,
                      InPortEvent, UnderWayEvent, OfflineEvent, HeadingEvent,
                      DestinationEvent, StoppedEvent)
 
+from collector.models import (ConditionsRun, DeparturesRun, LocationsRun,
+                              ConditionsRawHTML, DeparturesRawHTML,
+                              LocationsRawHTML)
+
 logger = logging.getLogger(__name__)
 
 timezone = pytz.timezone("America/Vancouver")
@@ -33,20 +37,34 @@ def median_value(queryset, term):
 
 
 def get_actual_departures():
+    run = DeparturesRun()
     url = "{}/{}".format(settings.BCF_BASE_URL, "actualDepartures.asp")
 
     try:
         logger.info("Querying BCF for data...")
         response = requests.get(url)
         if response.status_code == 200:
-            logger.info("Successfully queried BCF for data")
+            logger.debug("Successfully queried BCF for data")
             data = response.text
         else:
             logger.error("Could not retrieve details from the BC Ferries website: {}".format(response.status_code))
+            run.status = "Could not retrieve details from the BC Ferries website (non-200 status code)"
+            run.successful = False
+            run.save()
             return False
     except:
             logger.error("Could not retrieve details from the BC Ferries website.")
+            run.status = "Could not retrieve details from the BC Ferries website (unknown reason)"
+            run.successful = False
+            run.save()
             return False
+
+    run.set_status("Data retrieved from BCF")
+    raw_html = DeparturesRawHTML(
+        run=run,
+        data=data
+    )
+    raw_html.save()
 
     b = BeautifulSoup(data, 'html.parser')
 
@@ -55,7 +73,7 @@ def get_actual_departures():
     )
 
     date = b.find('span', class_='titleSmInv').text
-    print("Status for {}".format(date))
+    # print("Status for {}".format(date))
 
     routes_list = []
     terminals = {}
@@ -65,14 +83,14 @@ def get_actual_departures():
         route_name, sailing_time = route.span.decode_contents().split('<br/>')
         source, destination = re.search(r'(.*) to (.*)', route_name).groups()
         source_code, route_code = re.search(r'#([A-Z]+)(\d+)', route.find_previous_sibling().attrs['name']).groups()
-        print("Found route: {}".format(route_name))
-        print("-> source: {} destination: {}".format(source, destination))
-        print("-> {} (route {})".format(source_code, route_code))
+        # print("Found route: {}".format(route_name))
+        # print("-> source: {} destination: {}".format(source, destination))
+        # print("-> {} (route {})".format(source_code, route_code))
 
         sailing_time = re.search("Sailing time: (.*)", sailing_time).groups()[0]
         if sailing_time != "Variable":
             times = re.search(r'(([0-9]+) hours?\s?)?(([0-9]+) minutes)?.*', sailing_time).groups()
-            logger.info(times)
+            logger.debug(times)
 
             if times[3]:
                 minutes = int(times[3])
@@ -82,7 +100,7 @@ def get_actual_departures():
             if times[1]:
                 minutes += int(times[1]) * 60
 
-            logger.info("Minutes: {}".format(minutes))
+            logger.debug("Minutes: {}".format(minutes))
 
         terminals[source] = source_code
 
@@ -101,9 +119,9 @@ def get_actual_departures():
 
         for sailing in sailings.find_all('tr')[1:]:
             ferry, scheduled, actual, eta_arrival, status = [td.text.strip() for td in sailing.find_all('td')]
-            print("  -> {} (Scheduled: {}, Actual: {}, ETA: {}, Status: {}".format(
-                ferry, scheduled, actual, eta_arrival, status
-            ))
+            # print("  -> {} (Scheduled: {}, Actual: {}, ETA: {}, Status: {}".format(
+            #    ferry, scheduled, actual, eta_arrival, status
+            ##))
 
             sailings_list.append({
                 "ferry": ferry,
@@ -116,6 +134,8 @@ def get_actual_departures():
         route_details.update({"sailings": sailings_list})
         routes_list.append(route_details)
 
+    run.set_status("Data parsed")
+
     for route in routes_list:
 
         logger.debug("--- Parsing new route ---")
@@ -124,7 +144,7 @@ def get_actual_departures():
         source_name = route['source']
         source_code = route['source_code']
 
-        logger.info("Sailing time is '{}'".format(sailing_time))
+        logger.debug("Sailing time is '{}'".format(sailing_time))
 
         # Source terminal
         source_o, created = Terminal.objects.get_or_create(
@@ -137,7 +157,7 @@ def get_actual_departures():
                 source_code, source_name
             ))
         else:
-            logger.info("Found terminal {} for {}".format(
+            logger.debug("Found terminal {} for {}".format(
                 source_o.name, source_o.short_name
             ))
 
@@ -145,7 +165,7 @@ def get_actual_departures():
 
         # See if the destination is a terminal, or just a description
         if destination_name not in terminals:
-            logger.info("{} not found in terminal list".format(destination_name))
+            logger.debug("{} not found in terminal list".format(destination_name))
 
             # Create Destination object without an associated terminal
             dest_o, created = Destination.objects.get_or_create(
@@ -157,7 +177,7 @@ def get_actual_departures():
                     destination_name
                 ))
             else:
-                logger.info("Found destination for {}".format(
+                logger.debug("Found destination for {}".format(
                     dest_o.name
                 ))
         else:
@@ -171,7 +191,7 @@ def get_actual_departures():
                     destination_name, terminals[destination_name]
                 ))
             else:
-                logger.info("Found terminal {} for {}".format(
+                logger.debug("Found terminal {} for {}".format(
                     destination_o.name, destination_o.short_name
                 ))
 
@@ -187,7 +207,7 @@ def get_actual_departures():
                     destination_name, destination_o
                 ))
             else:
-                logger.info("Found destination for {} ({})".format(
+                logger.debug("Found destination for {} ({})".format(
                     dest_o.name, dest_o.terminal
                 ))
 
@@ -206,12 +226,12 @@ def get_actual_departures():
                 route_o.route_code, route_o.source, route_o.destination
             ))
         else:
-            logger.info("Found route {} ({} -> {})".format(
+            logger.debug("Found route {} ({} -> {})".format(
                 route_o.route_code, route_o.source, route_o.destination
             ))
 
         if not route_o.duration and route['sailing_time']:
-            logger.info("Setting sailing time to {}".format(route['sailing_time']))
+            logger.debug("Setting sailing time to {}".format(route['sailing_time']))
             route_o.duration = route['sailing_time']
             route_o.save()
 
@@ -230,7 +250,7 @@ def get_actual_departures():
             if created:
                 logger.info("Created ferry {}".format(ferry))
             else:
-                logger.info("Found ferry {}".format(ferry))
+                logger.debug("Found ferry {}".format(ferry))
 
             sched = parse("{} {}".format(date, scheduled_departure))
             sched = timezone.localize(sched)
@@ -240,7 +260,7 @@ def get_actual_departures():
                 actual = timezone.localize(actual)
                 departed = True
             else:
-                logger.info("No actual departure time for this sailing")
+                logger.debug("No actual departure time for this sailing")
                 actual = None
                 departed = False
 
@@ -250,15 +270,15 @@ def get_actual_departures():
                     eta = re.search(r'ETA: (.*)', eta_or_arrival).groups()[0]
                     eta_or_arrival = parse("{} {}".format(date, eta))
                     eta_or_arrival = timezone.localize(eta_or_arrival)
-                    logger.info("ETA for this sailing is {}".format(eta_or_arrival))
+                    logger.debug("ETA for this sailing is {}".format(eta_or_arrival))
                     arrived = False
                 else:
                     eta_or_arrival = parse("{} {}".format(date, eta_or_arrival))
                     eta_or_arrival = timezone.localize(eta_or_arrival)
-                    logger.info("Arrival time for this sailing was {}".format(eta_or_arrival))
+                    logger.debug("Arrival time for this sailing was {}".format(eta_or_arrival))
                     arrived = True
             else:
-                logger.info("No ETA or arrival time")
+                logger.debug("No ETA or arrival time")
                 eta_or_arrival = None
                 arrived = False
 
@@ -270,7 +290,7 @@ def get_actual_departures():
             if created:
                 logger.info("Created status {}".format(status))
             else:
-                logger.info("Found status {}".format(status))
+                logger.debug("Found status {}".format(status))
 
             sailing_o, created = Sailing.objects.get_or_create(
                 route=route_o,
@@ -280,11 +300,11 @@ def get_actual_departures():
             if created:
                 logger.info("Created sailing {}".format(sailing_o))
             else:
-                logger.info("Found sailing {}".format(sailing_o))
+                logger.debug("Found sailing {}".format(sailing_o))
 
             # Check differences
             if sailing_o.ferry != ferry_o:
-                logger.info("Ferry has changed ({} to {})".format(
+                logger.debug("Ferry has changed ({} to {})".format(
                     sailing_o.ferry, ferry_o
                 ))
                 event_o = FerryEvent(
@@ -298,7 +318,7 @@ def get_actual_departures():
                 sailing_o.save()
 
             if sailing_o.actual_departure != actual:
-                logger.info("Actual departure has changed ({} to {})".format(
+                logger.debug("Actual departure has changed ({} to {})".format(
                     sailing_o.actual_departure, actual
                 ))
 
@@ -321,7 +341,7 @@ def get_actual_departures():
                 sailing_o.save()
 
             if sailing_o.departed != departed:
-                logger.info("Departed has changed ({} to {})".format(
+                logger.debug("Departed has changed ({} to {})".format(
                     sailing_o.departed, departed
                 ))
                 event_o = DepartedEvent(
@@ -333,7 +353,7 @@ def get_actual_departures():
                 sailing_o.save()
 
             if sailing_o.eta_or_arrival_time != eta_or_arrival:
-                logger.info("ETA or arrival time has changed ({} to {})".format(
+                logger.debug("ETA or arrival time has changed ({} to {})".format(
                     sailing_o.eta_or_arrival_time, eta_or_arrival
                 ))
                 event_o = ArrivalTimeEvent(
@@ -348,7 +368,7 @@ def get_actual_departures():
                 sailing_o.save()
 
             if sailing_o.arrived != arrived:
-                logger.info("Arrival has changed ({} to {})".format(
+                logger.debug("Arrival has changed ({} to {})".format(
                     sailing_o.arrived, arrived
                 ))
                 event_o = ArrivedEvent(
@@ -360,7 +380,7 @@ def get_actual_departures():
                 sailing_o.save()
 
             if sailing_o.status != status_o:
-                logger.info("Status has changed ({} to {})".format(
+                logger.debug("Status has changed ({} to {})".format(
                     sailing_o.status, status_o
                 ))
                 event_o = StatusEvent(
@@ -373,8 +393,12 @@ def get_actual_departures():
                 event_o.save()
                 sailing_o.save()
 
+    run.set_status("Completed", successful=True)
+    logger.info("Finished retrieving and processing departures")
+
 
 def get_current_conditions():
+    run = ConditionsRun()
     url = "{}/{}".format(settings.BCF_BASE_URL, "at-a-glance.asp")
 
     try:
@@ -385,10 +409,19 @@ def get_current_conditions():
             data = response.text
         else:
             logger.error("Could not retrieve details from the BC Ferries website: {}".format(response.status_code))
+            run.set_status("Could not retrieve details from the BC Ferries website (non-200 status code)")
             return False
     except:
             logger.error("Could not retrieve details from the BC Ferries website.")
+            run.set_status("Could not retrieve details from the BC Ferries website (unknown error)")
             return False
+
+    run.set_status("Data retrieved from BCF")
+    raw_html = ConditionsRawHTML(
+        run=run,
+        data=data
+    )
+    raw_html.save()
 
     s = BeautifulSoup(data, 'html.parser')
 
@@ -514,7 +547,7 @@ def get_current_conditions():
                 )
 
                 if 'cancelled' in sailing:
-                    logger.info("Sailing has been cancelled")
+                    logger.debug("Sailing has been cancelled")
                 else:
                     percent_full = sailing['percent_full']
 
@@ -565,9 +598,12 @@ def get_current_conditions():
             )
 
             if created:
-                logger.debug("Created sailing for {}".format(sailing_time))
+                logger.info("Created sailing for {}".format(sailing_time))
             else:
                 logger.debug("Sailing for {} already existed".format(sailing_time))
+
+    run.set_status("Completed", successful=True)
+    logger.info("Finished retrieving and processing conditions")
 
 
 def get_ferry_locations():
@@ -575,9 +611,12 @@ def get_ferry_locations():
 
     route_numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '13']
 
+    run = LocationsRun()
+
     routes = {}
     for i in route_numbers:
         url = "{}/route{}.html".format(MAP_BASE, i)
+        run.set_status("Querying for locations: {}".format(url))
 
         try:
             logger.info("Querying BCF for data...")
@@ -585,13 +624,22 @@ def get_ferry_locations():
             if response.status_code == 200:
                 logger.info("Successfully queried BCF for data")
                 routes[i] = response.text
+                raw_html = LocationsRawHTML(
+                    run=run,
+                    data=response.text,
+                    url=url
+                )
+                raw_html.save()
             else:
                 logger.error("Could not retrieve details from the BC Ferries website: {}".format(response.status_code))
+                run.set_status("Could not retrieve details from the BC Ferries website (non-200 status code)")
                 return False
         except Exception as e:
                 logger.error("Could not retrieve details from the BC Ferries website. {}".format(e))
+                run.set_status("Could not retrieve details from the BC Ferries website (non-200 status code)")
                 return False
 
+    run.set_status("Data retrieved from BCF")
     #routes.append(open("_data/route0.html", "r").read())
 
     for route_number in routes:
@@ -622,7 +670,7 @@ def get_ferry_locations():
                 )
 
                 if created:
-                    logger.debug("Created Ferry {}".format(ferry))
+                    logger.info("Created Ferry {}".format(ferry))
 
                 if route_number in ['2', '13']:
                     # These show a heading instead of a destination
@@ -699,3 +747,5 @@ def get_ferry_locations():
                     ferry_o.last_updated = updated_time
                     ferry_o.save()
 
+    run.set_status("Completed", successful=True)
+    logger.info("Finished retrieving and processing locations")
