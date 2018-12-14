@@ -265,7 +265,7 @@ class Sailing(models.Model):
             "id": self.pk,
             "route": self.route.name,
             "route_id": self.route.id,
-            "scheduled_departure": self.scheduled_departure_local,
+            "scheduled_departure": int(self.scheduled_departure.strftime("%s")),
             "scheduled_departure_hour_minute": self.scheduled_departure_hour_minute,
             "state": self.state,
             "aggregates": {
@@ -287,7 +287,7 @@ class Sailing(models.Model):
             response['eta_or_arrival_time_hour_minute'] = self.eta_or_arrival_time_hour_minute
 
         if self.scheduled_arrival:
-            response['scheduled_arrival'] = self.scheduled_arrival
+            response['scheduled_arrival'] = int(self.scheduled_arrival.strftime("%s"))
             response['scheduled_arrival_hour_minute'] = self.scheduled_arrival_hour_minute
 
         if self.status:

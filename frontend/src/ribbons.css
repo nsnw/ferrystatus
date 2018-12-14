@@ -1,0 +1,27 @@
+/* The ribbons */
+
+.corner-ribbon{
+  width: 80px;
+  font-size: 10px;
+  background: #e43;
+  position: absolute;
+  bottom: 5px;
+  left: -5px;
+  text-align: center;
+  line-height: 15px;
+  letter-spacing: 1px;
+  color: #f0f0f0;
+}
+
+/* Colors */
+
+.corner-ribbon.white{background: #f0f0f0; color: #555;}
+.corner-ribbon.black{background: #333;}
+.corner-ribbon.grey{background: #999;}
+.corner-ribbon.blue{background: #39d;}
+.corner-ribbon.green{background: #2c7;}
+.corner-ribbon.turquoise{background: #1b9;}
+.corner-ribbon.purple{background: #95b;}
+.corner-ribbon.red{background: #e43;}
+.corner-ribbon.orange{background: #e82;}
+.corner-ribbon.yellow{background: #ec0;}

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Route, Link } from "react-router-dom";
 import PropTypes from "prop-types";
 import key from "weak-key";
 import { PercentFull } from "./PercentFull"
+var moment = require('moment-timezone');
 
 function randomPercent() {
   return Math.floor((Math.random() * 100));
@@ -31,6 +32,22 @@ function getWaitColour(value) {
   else
     return "secondary"
 };
+
+function formatRibbon(sailing) {
+
+  let ts = moment(new Date(sailing.scheduled_departure*1000)).tz("America/Vancouver");
+  let now = moment().tz("America/Vancouver");
+
+  if (sailing.status == "Cancelled")
+    return <div className="corner-ribbon red">Cancelled</div>
+  else if (ts.date() != now.date())
+    return <div className="corner-ribbon purple">Tomorrow</div>
+  else
+    return null
+
+};
+
+
 
 function formatDeparture(sailing) {
   var state;
@@ -65,7 +82,7 @@ const AllRoutesTable = ({ data }) =>
       {data.map(el => (
         <div key={el.id} className="row mb-4">
           <div className="col-12 row pr-0">
-            <div className="col-10 p-1 bg-primary">
+            <div className="col-10 p-1 pl-2 bg-primary">
               <Link to={`/sailings/route/${el.id}`}>
                 <strong className="text-white">{el.name}</strong>
               </Link>
@@ -78,12 +95,17 @@ const AllRoutesTable = ({ data }) =>
           <div className="row col-12 pr-0">
             <div className="col-12 row pr-0">
               <div className="col-4 pt-2 bg-dark text-white text-center">
+                {formatRibbon(el.next_sailing)}
                 <Link to={`/sailings/${el.next_sailing.id}`}>
                   <h2><strong className="text-white">{formatDeparture(el.next_sailing)}</strong></h2>
                 </Link>
               </div>
               <div className="col-8 row pr-0">
-                <div className="col-lg-8 col-12 text-center p-0 flex-column justify-content-center card card-block"><h5><strong>{el.next_sailing.ferry}</strong></h5></div>
+                <div className="col-lg-8 col-12 text-center p-0 flex-column justify-content-center card card-block">
+                  <h5>
+                    {!el.next_sailing.ferry ? ( <strong className="text-black-50">TBC</strong> ) : ( <strong>{el.next_sailing.ferry}</strong> )}
+                  </h5>
+                </div>
                 <div className="col-lg-4 col-12 p-2 flex-column justify-content-center card card-block">{!el.next_sailing.percent_full ? ( <p></p> ) : ( <PercentFull percentFull={el.next_sailing.percent_full} /> )}</div>
               </div>
             </div>
