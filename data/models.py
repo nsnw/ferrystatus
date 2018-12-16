@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import pytz
 from enum import Enum
 import logging
+import math
 
 logger = logging.getLogger(__name__)
 
@@ -161,6 +162,7 @@ class Status(models.Model):
 class Sailing(models.Model):
     route = models.ForeignKey(Route, null=False, blank=False, on_delete=models.DO_NOTHING)
     ferry = models.ForeignKey(Ferry, null=True, blank=True, on_delete=models.DO_NOTHING)
+    sailing_created = models.DateTimeField(auto_now=True)
     scheduled_departure = models.DateTimeField(null=False, blank=False)
     scheduled_arrival = models.DateTimeField(null=True, blank=True)
     actual_departure = models.DateTimeField(null=True, blank=True)
@@ -216,6 +218,32 @@ class Sailing(models.Model):
     def eta_or_arrival_time_hour_minute(self) -> str:
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
         return self.eta_or_arrival_time.astimezone(tz).strftime("%-I:%M%p").lower()
+
+    @property
+    def is_full(self) -> bool:
+        if self.percent_full == 100:
+            return True
+        else:
+            return False
+
+    @property
+    def full_time(self):
+        if self.is_full:
+            # Get the 100% status event
+            e = self.sailingevent_set.instance_of(PercentFullEvent).\
+                filter(percentfullevent__new_value=100).get()
+            return e.timestamp
+        else:
+            return None
+
+    @property
+    def full_time_delta(self):
+        if self.is_full:
+            delta = self.scheduled_departure - self.full_time
+            minutes = math.floor(delta.seconds / 60)
+            return minutes
+        else:
+            return None
 
     @property
     def aggregate_percent_full(self) -> float:
