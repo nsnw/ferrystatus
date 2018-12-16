@@ -397,26 +397,32 @@ def get_actual_departures():
     logger.info("Finished retrieving and processing departures")
 
 
-def get_current_conditions():
+def get_current_conditions(input_file: str=None):
     run = ConditionsRun()
-    url = "{}/{}".format(settings.BCF_BASE_URL, "at-a-glance.asp")
 
-    try:
-        logger.info("Querying BCF for data...")
-        response = requests.get(url)
-        if response.status_code == 200:
-            logger.info("Successfully queried BCF for data")
-            data = response.text
-        else:
-            logger.error("Could not retrieve details from the BC Ferries website: {}".format(response.status_code))
-            run.set_status("Could not retrieve details from the BC Ferries website (non-200 status code)")
-            return False
-    except:
-            logger.error("Could not retrieve details from the BC Ferries website.")
-            run.set_status("Could not retrieve details from the BC Ferries website (unknown error)")
-            return False
+    if input_file:
+        fp = open(input_file, 'r')
+        data = fp.read()
+    else:
+        url = "{}/{}".format(settings.BCF_BASE_URL, "at-a-glance.asp")
+
+        try:
+            logger.info("Querying BCF for data...")
+            response = requests.get(url)
+            if response.status_code == 200:
+                logger.info("Successfully queried BCF for data")
+                data = response.text
+            else:
+                logger.error("Could not retrieve details from the BC Ferries website: {}".format(response.status_code))
+                run.set_status("Could not retrieve details from the BC Ferries website (non-200 status code)")
+                return False
+        except:
+                logger.error("Could not retrieve details from the BC Ferries website.")
+                run.set_status("Could not retrieve details from the BC Ferries website (unknown error)")
+                return False
 
     run.set_status("Data retrieved from BCF")
+
     raw_html = ConditionsRawHTML(
         run=run,
         data=data
@@ -568,6 +574,13 @@ def get_current_conditions():
 
                 sailing_o.save()
 
+        # For some sailings (i.e. Tsawwassen to Southern Gulf Islands) the
+        # later sailings can actually include the day *after* tomorrow as
+        # well as tomorrow - e.g. "*11:10am *5:40pm *9:05pm *9:55am". This
+        # is as dumb as all hell but we have to handle it or we end up with
+        # phantom sailings being created
+        latest_time = None
+
         for sailing in route['later_sailings']:
             logger.debug("Found later sailing {}".format(sailing))
 
@@ -578,9 +591,19 @@ def get_current_conditions():
                     tomorrow, sailing[1:]
                 ))
                 sailing_time = timezone.localize(sailing_time)
-                logger.debug("Later sailing is tomorrow: {}".format(
-                    sailing_time
-                ))
+
+                # Check for the aforementioned stupidity
+                if latest_time and sailing_time < latest_time:
+                    sailing_time = sailing_time + timedelta(days=1)
+                    logger.debug("Later sailing is for the DAY AFTER tomorrow: {}".format(
+                        sailing_time
+                    ))
+                    latest_time = sailing_time
+                else:
+                    logger.debug("Later sailing is tomorrow: {}".format(
+                        sailing_time
+                    ))
+                    latest_time = sailing_time
 
             else:
                 today = datetime.now(timezone).strftime("%Y-%m-%d")
@@ -591,6 +614,7 @@ def get_current_conditions():
                 logger.debug("Later sailing is today: {}".format(
                     sailing_time
                 ))
+                latest_time = sailing_time
 
             sailing_o, created = Sailing.objects.get_or_create(
                 route=route_o,
