@@ -11,6 +11,13 @@ import { Ferries } from "./components/Ferries";
 import { ReallyAllSailings, AllSailings, RouteSailings, Sailing } from "./components/Sailings";
 import { AllRoutes } from "./components/Routes";
 
+const Page404 = ({ location }) => (
+  <div>
+    <h1>Not found</h1>
+    <p>Nothing here, sorry!</p>
+  </div>
+)
+
 ReactDOM.render((
   <Router>
     <Switch>
@@ -22,6 +29,7 @@ ReactDOM.render((
       <Route path="/routes/:routeId" component={AllRoutes}/>
       <Route path="/sailings/route/:routeId" component={RouteSailings}/>
       <Route path="/sailings/:sailingId" component={Sailing}/>
+      <Route component={Page404} />
     </Switch>
   </Router>
 ), document.getElementById('app'))

@@ -92,8 +92,8 @@ const AllRoutesTable = ({ data }) =>
               </Link>
             </div>
             <div className="col-2 row p-0 mr-0">
-              <div className={"col-6 text-center p-0 bg-" + getWaitColour(el.car_waits)}>🚗</div>
-              <div className={"col-6 text-center p-0 bg-" + getWaitColour(el.oversize_waits)}>🚚</div>
+              <div className={"col-6 text-center p-0 pt-1 bg-" + getWaitColour(el.car_waits)}>🚗</div>
+              <div className={"col-6 text-center p-0 pt-1 bg-" + getWaitColour(el.oversize_waits)}>🚚</div>
             </div>
           </div>
           <div className="row col-12 pr-0">
