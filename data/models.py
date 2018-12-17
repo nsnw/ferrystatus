@@ -251,7 +251,8 @@ class Sailing(models.Model):
             route__id=self.route.id,
             sailing_time=self.sailing_time,
             day_of_week=self.day_of_week,
-            arrived=True
+            arrived=True,
+            duration__isnull=False
         ).aggregate(
             average=Avg('percent_full'),
             minimum=Min('percent_full'),
@@ -266,7 +267,8 @@ class Sailing(models.Model):
             route__id=self.route.id,
             sailing_time=self.sailing_time,
             day_of_week=self.day_of_week,
-            arrived=True
+            arrived=True,
+            duration__isnull=False
         ).aggregate(
             average=Avg('late_leaving'),
             minimum=Min('late_leaving'),
@@ -281,7 +283,8 @@ class Sailing(models.Model):
             route__id=self.route.id,
             sailing_time=self.sailing_time,
             day_of_week=self.day_of_week,
-            arrived=True
+            arrived=True,
+            duration__isnull=False
         ).aggregate(
             average=Avg('late_arriving'),
             minimum=Min('late_arriving'),
