@@ -13,5 +13,11 @@ logger = logging.getLogger(__name__)
 class Command(BaseCommand):
     help = "Query and parse departures"
 
+    def add_arguments(self, parser):
+        parser.add_argument('--input-file', help="optional input file")
+
     def handle(self, *args, **options):
-        get_actual_departures()
+        if 'input_file' in options:
+            get_actual_departures(input_file=options['input_file'])
+        else:
+            get_actual_departures()

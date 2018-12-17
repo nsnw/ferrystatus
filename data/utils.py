@@ -36,28 +36,32 @@ def median_value(queryset, term):
         return sum(values[count/2-1:count/2+1])/2.0
 
 
-def get_actual_departures():
+def get_actual_departures(input_file: str=None):
     run = DeparturesRun()
     url = "{}/{}".format(settings.BCF_BASE_URL, "actualDepartures.asp")
 
-    try:
-        logger.info("Querying BCF for data...")
-        response = requests.get(url)
-        if response.status_code == 200:
-            logger.debug("Successfully queried BCF for data")
-            data = response.text
-        else:
-            logger.error("Could not retrieve details from the BC Ferries website: {}".format(response.status_code))
-            run.status = "Could not retrieve details from the BC Ferries website (non-200 status code)"
-            run.successful = False
-            run.save()
-            return False
-    except:
-            logger.error("Could not retrieve details from the BC Ferries website.")
-            run.status = "Could not retrieve details from the BC Ferries website (unknown reason)"
-            run.successful = False
-            run.save()
-            return False
+    if input_file:
+        fp = open(input_file, 'r')
+        data = fp.read()
+    else:
+        try:
+            logger.info("Querying BCF for data...")
+            response = requests.get(url)
+            if response.status_code == 200:
+                logger.debug("Successfully queried BCF for data")
+                data = response.text
+            else:
+                logger.error("Could not retrieve details from the BC Ferries website: {}".format(response.status_code))
+                run.status = "Could not retrieve details from the BC Ferries website (non-200 status code)"
+                run.successful = False
+                run.save()
+                return False
+        except:
+                logger.error("Could not retrieve details from the BC Ferries website.")
+                run.status = "Could not retrieve details from the BC Ferries website (unknown reason)"
+                run.successful = False
+                run.save()
+                return False
 
     run.set_status("Data retrieved from BCF")
     raw_html = DeparturesRawHTML(
@@ -264,7 +268,8 @@ def get_actual_departures():
                 actual = None
                 departed = False
 
-            if eta_or_arrival:
+            # ETA/arrival time can be '...' (unknown)
+            if eta_or_arrival and eta_or_arrival is not '...':
                 if 'ETA' in eta_or_arrival:
                     # we have an ETA
                     eta = re.search(r'ETA: (.*)', eta_or_arrival).groups()[0]
