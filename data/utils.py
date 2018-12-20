@@ -589,6 +589,12 @@ def get_current_conditions(input_file: str=None):
         for sailing in route['later_sailings']:
             logger.debug("Found later sailing {}".format(sailing))
 
+            cancelled = False
+            if re.search('-Cancelled', sailing):
+                logger.debug("Sailing is cancelled")
+                cancelled = True
+                (sailing, _) = sailing.split('-')
+
             if sailing.startswith('*'):
                 # Sailing is tomorrow
                 tomorrow = (datetime.now(timezone) + timedelta(days=1)).strftime("%Y-%m-%d")
