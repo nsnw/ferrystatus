@@ -609,6 +609,18 @@ class PercentFullEvent(SailingEvent):
         )
 
 
+class CancelledEvent(SailingEvent):
+
+    @property
+    def text(self)-> str:
+        return "Sailing has been cancelled"
+
+    def __repr__(self) -> str:
+        return "<CancelledEvent: {}>".format(
+            self.time
+        )
+
+
 class CarWaitEvent(RouteEvent):
     old_value = models.IntegerField(null=True, blank=True)
     new_value = models.IntegerField(null=True, blank=True)

@@ -13,7 +13,7 @@ from .models import (Terminal, Route, Ferry, Sailing, Destination, Status,
                      FerryEvent, DepartureTimeEvent, DepartedEvent,
                      PercentFullEvent, CarWaitEvent, OversizeWaitEvent,
                      InPortEvent, UnderWayEvent, OfflineEvent, HeadingEvent,
-                     DestinationEvent, StoppedEvent)
+                     DestinationEvent, StoppedEvent, CancelledEvent)
 
 from collector.models import (ConditionsRun, DeparturesRun, LocationsRun,
                               ConditionsRawHTML, DeparturesRawHTML,
@@ -394,6 +394,12 @@ def get_actual_departures(input_file: str=None):
                     new_status=status_o
                 )
                 sailing_o.status = status_o
+
+                if sailing_o.status == "Cancelled":
+                    cancelled_o = CancelledEvent(
+                        sailing=sailing_o
+                    )
+                    cancelled_o.save()
 
                 event_o.save()
                 sailing_o.save()
