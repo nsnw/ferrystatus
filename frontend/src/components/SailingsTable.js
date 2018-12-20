@@ -64,8 +64,23 @@ const AllSailingsTable = ({ data }) =>
         <strong>All sailings</strong>
       </h1>
       {data.map(el => (
-        <div key={el.id} className="row bg-light mb-2">
-          <div className="col-6"><Link to={`/sailings/${el.id}`}><strong>{el.route}</strong></Link></div>
+        <div key={el.id} className="row mb-4">
+          <div className="col-12 row pr-0">
+            <div className="col-12 p-1 pl-3 pt-2 bg-primary">
+              <Link to={`/sailings/${el.id}`}>
+                <strong className="text-white">{el.route}</strong>
+              </Link>
+            </div>
+          </div>
+          <div className="row col-12 pr-0">
+            <div className="col-12 row pr-0">
+              <div className="col-4 pt-2 bg-dark text-white text-center">
+                <Link to={`/sailings/${el.id}`}>
+                  <h2><strong className="text-white">{el.scheduled_departure_hour_minute}</strong></h2>
+                </Link>
+              </div>
+            </div>
+          </div>
           <div className="col-3">{formatDeparture(el)}</div>
           <div className="col-3">{formatStatus(el)}</div>
           <div className="col-6"><strong>{el.ferry}&nbsp;</strong></div>
