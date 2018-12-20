@@ -591,7 +591,7 @@ def get_current_conditions(input_file: str=None):
 
             cancelled = False
             if re.search('-Cancelled', sailing):
-                logger.debug("Sailing is cancelled")
+                logger.debug("Later sailing is cancelled")
                 cancelled = True
                 (sailing, _) = sailing.split('-')
 
