@@ -4,6 +4,7 @@ from django.conf import settings
 from polymorphic.models import PolymorphicModel
 from datetime import datetime, timedelta
 import pytz
+from pytz import timezone
 from enum import Enum
 import logging
 import math
@@ -11,6 +12,17 @@ import math
 logger = logging.getLogger(__name__)
 
 BCF_URL_BASE = "https://www.bcferries.com/current_conditions"
+
+def get_local_time():
+    tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
+    now = datetime.now().astimezone(tz)
+    return now
+
+def get_local_midnight():
+    tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
+    tomorrow = datetime.now().astimezone(tz) + timedelta(days=1)
+    midnight = tomorrow.replace(hour=0, minute=0, second=0, microsecond=0)
+    return midnight
 
 class DayOfWeek(Enum):
     MON = "Monday"
@@ -74,6 +86,20 @@ class Route(models.Model):
         ).order_by('scheduled_departure').first()
 
         return sailing
+
+    @property
+    def sailings_today(self):
+        now = get_local_time()
+        midnight = get_local_midnight()
+
+        sailings = Sailing.objects.filter(
+            route=self,
+            scheduled_departure__gt=now,
+            scheduled_departure__lt=midnight
+        )
+
+        return sailings
+
 
     @property
     def as_dict(self) -> dict:

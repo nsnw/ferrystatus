@@ -26,7 +26,6 @@ timezone = pytz.timezone("America/Vancouver")
 def get_local_time(timestamp):
     return timezone.localize(timestamp).strftime("%H:%M")
 
-
 def median_value(queryset, term):
     count = queryset.count()
     values = queryset.values_list(term, flat=True).order_by(term)
@@ -445,6 +444,8 @@ def get_current_conditions(input_file: str=None):
     terminals = {}
 
     j_routes = []
+
+    full_routes = []
     # Get sections
     for section in s.find_all('tbody'):
         current_terminal = None
@@ -454,57 +455,101 @@ def get_current_conditions(input_file: str=None):
         else:
 
             # parse out each sailing
+            previously_parsed = None
             for route in section.find_all('tr', recursive=False)[1:-1]:
                 j_route = {}
                 route_name = route.td.text
                 details = route.find_all('td', recursive=False)
-                route_id = re.match('.*route=(\d+)&dept=(\w+).*', details[7].a.get('href')).groups()[0]
-                j_route['route_id'] = route_id
-                j_route['route_name'] = route_name
 
-                if details[1].div.text == "N/A":
-                    next_sailing = "N/A"
-                    percent_full = "N/A"
-                    j_route['sailings'] = None
-                else:
-                    sailing_details = {}
-                    sailings = details[1].div.table.find_all('tr')
-                    j_sailings = []
-                    for sailing in sailings:
-                        next_sailing = sailing.td.text
-                        if sailing.td.next_sibling.text == "Cancelled":
-                            j_sailings.append({
-                                'time': next_sailing,
-                                'cancelled': True
-                            })
-                        else:
-                            percent_full = int(sailing.td.next_sibling.text.split('% ')[0])
+                fully_booked = False
 
-                            sailing_details.update({next_sailing: percent_full})
+                route_id = None
+                try:
+                    route_id = re.match('.*route=(\d+)&dept=(\w+).*', details[7].a.get('href')).groups()[0]
+                except IndexError as e:
+                    if 'Vehicle space on this route is fully booked' in details[0].text:
+                        logger.debug("All sailings today on the previously-parsed route are fully booked")
+                        logger.debug("This was: {}".format(previously_parsed))
+                        fully_booked = True
+                        full_routes.append(previously_parsed)
+                    else:
+                        logger.error("Unknown error: {}".format(e))
 
-                            j_sailings.append({
-                                'time': next_sailing,
-                                'percent_full': percent_full,
-                            })
+                if route_id:
+                    j_route['route_id'] = route_id
+                    j_route['route_name'] = route_name
 
-                    j_route['sailings'] = j_sailings
+                    if details[1].div.text == "N/A":
+                        next_sailing = "N/A"
+                        percent_full = "N/A"
+                        j_route['sailings'] = None
+                    else:
+                        sailing_details = {}
+                        sailings = details[1].div.table.find_all('tr')
+                        j_sailings = []
+                        for sailing in sailings:
+                            next_sailing = sailing.td.text
+                            if sailing.td.next_sibling.text == "Cancelled":
+                                j_sailings.append({
+                                    'time': next_sailing,
+                                    'cancelled': True
+                                })
+                            else:
+                                percent_full = int(sailing.td.next_sibling.text.split('% ')[0])
 
-                    car_waits = int(details[2].text.rstrip('\n'))
-                    oversize_waits = int(details[3].text.rstrip('\n'))
+                                sailing_details.update({next_sailing: percent_full})
 
-                    j_route['car_waits'] = car_waits
-                    j_route['oversize_waits'] = oversize_waits
+                                j_sailings.append({
+                                    'time': next_sailing,
+                                    'percent_full': percent_full,
+                                })
 
-                next_sailings = details[4].text.lstrip(' ').split(' ')
-                j_route['later_sailings'] = next_sailings
+                        j_route['sailings'] = j_sailings
 
-                j_routes.append(j_route)
+                        car_waits = int(details[2].text.rstrip('\n'))
+                        oversize_waits = int(details[3].text.rstrip('\n'))
+
+                        j_route['car_waits'] = car_waits
+                        j_route['oversize_waits'] = oversize_waits
+
+                    next_sailings = details[4].text.lstrip(' ').split(' ')
+                    j_route['later_sailings'] = next_sailings
+
+                    j_routes.append(j_route)
+                    previously_parsed = route_name
+
 
     for route in j_routes:
         route_name = route['route_name']
         logger.debug("Found route {}".format(route_name))
 
         route_o = Route.objects.get(name=route_name)
+
+        if route_name in full_routes:
+            logger.debug("All of today's sailings are now full")
+
+            # Set all of today's sailings to 100%
+            for full_sailing in route_o.sailings_today:
+                logger.debug("Setting sailing {} to 100% full...".format(
+                    full_sailing
+                ))
+                if full_sailing.percent_full != 100:
+                    logger.debug("Percent full has changed ({} -> {})".format(
+                        full_sailing.percent_full, 100
+                    ))
+
+                    percentfull_o = PercentFullEvent(
+                        sailing=full_sailing,
+                        old_value=full_sailing.percent_full,
+                        new_value=100
+                    )
+
+                    full_sailing.percent_full = 100
+                    full_sailing.save()
+
+                    percentfull_o.save()
+                else:
+                    logger.debug("Sailing was already 100% full")
 
         car_waits = route.get('car_waits', None)
         oversize_waits = route.get('oversize_waits', None)
