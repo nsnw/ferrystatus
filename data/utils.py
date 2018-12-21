@@ -3,6 +3,7 @@ import re
 import logging
 import pytz
 import sys
+from time import sleep
 from bs4 import BeautifulSoup
 from django.conf import settings
 from collections import deque
@@ -13,7 +14,9 @@ from .models import (Terminal, Route, Ferry, Sailing, Destination, Status,
                      FerryEvent, DepartureTimeEvent, DepartedEvent,
                      PercentFullEvent, CarWaitEvent, OversizeWaitEvent,
                      InPortEvent, UnderWayEvent, OfflineEvent, HeadingEvent,
-                     DestinationEvent, StoppedEvent, CancelledEvent)
+                     DestinationEvent, StoppedEvent, CancelledEvent,
+                     ParkingEvent, CarPercentFullEvent,
+                     OversizePercentFullEvent)
 
 from collector.models import (ConditionsRun, DeparturesRun, LocationsRun,
                               ConditionsRawHTML, DeparturesRawHTML,
@@ -25,6 +28,9 @@ timezone = pytz.timezone("America/Vancouver")
 
 def get_local_time(timestamp):
     return timezone.localize(timestamp).strftime("%H:%M")
+
+def get_local_day():
+    return datetime.now().astimezone(timezone).strftime("%Y-%m-%d")
 
 def median_value(queryset, term):
     count = queryset.count()
@@ -690,6 +696,173 @@ def get_current_conditions(input_file: str=None):
 
     run.set_status("Completed", successful=True)
     logger.info("Finished retrieving and processing conditions")
+
+
+def get_sailing_detail(input_file: str=None):
+    URL_BASE = "https://orca.bcferries.com/cc/marqui"
+    MAIN_PAGE = "{}/sailingDetail.asp".format(URL_BASE)
+
+    data = []
+    if input_file:
+        with open(input_file, "r") as fp:
+            file_data = fp.read()
+            data.append(file_data)
+
+    else:
+
+        for route in Route.objects.all():
+            code = "{0:02d}".format(route.route_code)
+
+            url = "{}?route={}&dept={}".format(
+                MAIN_PAGE, code, route.source.short_name
+            )
+
+            try:
+                logger.debug("Querying {}...".format(url))
+                page = requests.get(url)
+                data.append(page.content.decode())
+                sleep(1)
+            except Exception as e:
+                logger.error("Error ({}): {}".format(url, e))
+
+
+    additional_urls = []
+    for d in data:
+        b = BeautifulSoup(d, 'html.parser')
+
+        # Check for the "No more scheduled sailings for today" message
+        if "No more scheduled sailings for today" in d:
+            logger.debug("No more URLs to retrieve")
+        else:
+            # Get additional sailing times
+            for option in b.find('select').find_all('option'):
+                additional_urls.append("{}/{}".format(
+                    URL_BASE,
+                    option['value']
+                ))
+
+    if not input_file:
+        # retrieve additional urls
+        # add to data
+        for additional_url in additional_urls:
+            try:
+                logger.debug("Querying {}...".format(additional_url))
+                page = requests.get(additional_url)
+                data.append(page.content.decode())
+                sleep(1)
+            except Exception as e:
+                logger.error("Error ({}): {}".format(additional_url, e))
+
+    for d in data:
+        b = BeautifulSoup(d, 'html.parser')
+
+        # Get route
+        route_name = b.font.text
+        terminal_code = re.search(r'.*arrivals-departures.html\?dept=(\w+)&.*', d).groups()[0]
+        logger.debug("Terminal code: {}".format(terminal_code))
+        logger.debug("Route name: {}".format(route_name))
+        route_o = Route.objects.get(name=route_name)
+        terminal_o = Terminal.objects.get(short_name=terminal_code)
+
+        # Check for the "No more scheduled sailings for today" message
+        if 'No more scheduled sailings for today' in d:
+            logger.debug("No more scheduled sailings for today")
+        else:
+
+            # Get sailing time
+            sailing_details = next(
+                span.text for span in b.find_all('span') if 'Sailing Details' in span.text
+            )
+            sailing_time = re.search(r'.*:\s(\S+ \w+)', sailing_details).groups()[0]
+            logger.debug("Sailing time: {}".format(sailing_time))
+
+            scheduled_departure = timezone.localize(parse("{} {}".format(
+                get_local_day(),
+                sailing_time
+            )))
+            logger.debug("Parsed timestamp: {}".format(scheduled_departure))
+
+            sailing_o = Sailing.objects.get(
+                route=route_o,
+                scheduled_departure=scheduled_departure
+            )
+
+            if "CANCELLED" in sailing_details:
+                logger.debug("Sailing has been cancelled")
+                sailing_o.cancelled = True
+
+            else:
+                # Get deck space
+                car_space = None
+                oversize_space = None
+                try:
+                    (oversize_space, car_space, timestamp) = re.search(
+                        r'.*"DeckSpace_pop.asp\?os=(-?\d+)&uh=(-?\d+)&tm=(\d+)".*',
+                        d).groups()
+                    logger.debug("Car space used: {}".format(car_space))
+                    logger.debug("Oversize space used: {}".format(oversize_space))
+
+                    car_percent = int(car_space)
+                    oversize_percent = int(oversize_space)
+
+                    # Update car/oversize percentages
+                    if sailing_o.car_percent_full != car_percent:
+                        logger.debug("Car % was {}%, now {}%".format(
+                            sailing_o.car_percent_full, car_percent
+                        ))
+
+                        car_event_o = CarPercentFullEvent(
+                            sailing=sailing_o,
+                            old_value=sailing_o.car_percent_full,
+                            new_value=car_percent
+                        )
+                        car_event_o.save()
+
+                        sailing_o.car_percent_full = car_percent
+
+                    if sailing_o.oversize_percent_full != oversize_percent:
+                        logger.debug("Oversize % was {}%, now {}%".format(
+                            sailing_o.oversize_percent_full, oversize_percent
+                        ))
+
+                        oversize_event_o = OversizePercentFullEvent(
+                            sailing=sailing_o,
+                            old_value=sailing_o.oversize_percent_full,
+                            new_value=oversize_percent
+                        )
+                        oversize_event_o.save()
+
+                        sailing_o.oversize_percent_full = oversize_percent
+
+                    sailing_o.save()
+
+                except Exception as e:
+                    logger.warn("Couldn't find deck space usage: {}".format(
+                        e
+                    ))
+
+                ferry = next(a.text for a in b.find_all('a') if 'onboard' in a['href'] and a.text)
+                ferry_o = Ferry.objects.get(name=ferry)
+                logger.debug("Ferry: {}".format(ferry))
+
+        parking = int(re.search(r'\s(\d+)%.*', next(td.text for td in b.find_all('td') if (len(td.find_all('a')) == 1 and td.a.text == "Parking"))).groups()[0])
+        logger.debug("Parking: {}".format(parking))
+
+        if terminal_o.parking != parking:
+            logger.debug("Parking has changed from {}% to {}%".format(
+                terminal_o.parking, parking
+            ))
+            parking_o = ParkingEvent(
+                terminal=terminal_o,
+                old_value=terminal_o.parking,
+                new_value=parking
+            )
+            parking_o.save()
+            terminal_o.parking = parking
+            terminal_o.save()
+
+
+
 
 
 def get_ferry_locations():

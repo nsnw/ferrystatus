@@ -43,6 +43,7 @@ class FerryStatus(Enum):
 class Terminal(models.Model):
     name = models.CharField(max_length=64, null=False, blank=False)
     short_name = models.CharField(max_length=16, null=False, blank=False)
+    parking = models.IntegerField(null=True, blank=True)
 
     def __str__(self) -> str:
         return self.name
@@ -197,6 +198,8 @@ class Sailing(models.Model):
     departed = models.BooleanField(default=False)
     arrived = models.BooleanField(default=False)
     percent_full = models.IntegerField(default=None, null=True, blank=True)
+    car_percent_full = models.IntegerField(default=None, null=True, blank=True)
+    oversize_percent_full = models.IntegerField(default=None, null=True, blank=True)
     sailing_time = models.CharField(max_length=8, null=True, blank=True)
     day_of_week = models.CharField(max_length=16, choices=[
         (tag, tag.value) for tag in DayOfWeek
@@ -204,6 +207,7 @@ class Sailing(models.Model):
     late_leaving = models.IntegerField(null=True, blank=True)
     late_arriving = models.IntegerField(null=True, blank=True)
     duration = models.IntegerField(null=True, blank=True)
+    cancelled = models.BooleanField(default=False)
 
     @property
     def scheduled_departure_local(self) -> str:
@@ -506,6 +510,30 @@ class RouteEvent(PolymorphicModel):
         return self.timestamp.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S")
 
 
+class TerminalEvent(PolymorphicModel):
+    terminal = models.ForeignKey(Terminal, null=False, blank=False, on_delete=models.DO_NOTHING)
+    timestamp = models.DateTimeField(auto_now=True)
+
+    @property
+    def time(self) -> str:
+        tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
+        return self.timestamp.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S")
+
+
+class ParkingEvent(TerminalEvent):
+    old_value = models.IntegerField(null=True, blank=True)
+    new_value = models.IntegerField(null=True, blank=True)
+
+    @property
+    def text(self) -> str:
+        return "Terminal parking now {}% full".format(self.new_value)
+
+    def __repr__(self) -> str:
+        return "<ParkingEvent: [{}] {}%>".format(
+            self.time, self.new_value
+        )
+
+
 class LocationEvent(PolymorphicModel):
     ferry = models.ForeignKey(Ferry, null=False, blank=False, on_delete=models.DO_NOTHING)
     timestamp = models.DateTimeField(auto_now=True)
@@ -635,7 +663,47 @@ class PercentFullEvent(SailingEvent):
         )
 
 
+class CarPercentFullEvent(SailingEvent):
+    old_value = models.IntegerField(null=True, blank=True)
+    new_value = models.IntegerField(null=True, blank=True)
+
+    @property
+    def text(self) -> str:
+        return "Sailing now {}% full for cars".format(self.new_value)
+
+    def __repr__(self) -> str:
+        return "<CarPercentFullEvent: [{}] {}%>".format(
+            self.time, self.new_value
+        )
+
+
+class OversizePercentFullEvent(SailingEvent):
+    old_value = models.IntegerField(null=True, blank=True)
+    new_value = models.IntegerField(null=True, blank=True)
+
+    @property
+    def text(self) -> str:
+        return "Sailing now {}% full for oversize vehicles".format(self.new_value)
+
+    def __repr__(self) -> str:
+        return "<OversizePercentFullEvent: [{}] {}%>".format(
+            self.time, self.new_value
+        )
+
+
 class CancelledEvent(SailingEvent):
+
+    @property
+    def text(self)-> str:
+        return "Sailing has been cancelled"
+
+    def __repr__(self) -> str:
+        return "<CancelledEvent: {}>".format(
+            self.time
+        )
+
+
+class FullEvent(SailingEvent):
 
     @property
     def text(self)-> str:
