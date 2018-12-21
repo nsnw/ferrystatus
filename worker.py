@@ -6,6 +6,7 @@ import os
 from time import sleep
 import logging
 from datetime import datetime, timedelta
+import pytz
 
 if 'DJANGO_SETTINGS_MODULE' not in os.environ:
     os.environ['DJANGO_SETTINGS_MODULE'] = "bcfdata.settings"
@@ -13,10 +14,14 @@ if 'DJANGO_SETTINGS_MODULE' not in os.environ:
 apps.populate(settings.INSTALLED_APPS)
 
 from data.models import Sailing
-from data.utils import get_actual_departures, get_current_conditions, get_ferry_locations
+from data.utils import (get_actual_departures, get_current_conditions,
+                        get_ferry_locations, get_sailing_detail)
 
 app = Flask(__name__)
 last_run = datetime.utcfromtimestamp(0)
+last_detail_run = datetime.utcfromtimestamp(0)
+
+tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
 
 interval = 600
 
@@ -40,7 +45,22 @@ def periodic_update():
         else:
             print("Sleeping ({} seconds to go)".format(interval - td.seconds))
 
-        sleep(1)
+        sleep(10)
+
+    print("Shutdown worker")
+
+def periodic_detail_update():
+    global last_detail_run
+    while e.is_set() is False:
+        td = datetime.now() - last_detail_run
+
+        if td.seconds > 3600:
+            get_sailing_detail()
+            last_detail_run = datetime.now()
+        else:
+            print("Sleeping ({} seconds to go)".format(3600 - td.seconds))
+
+        sleep(10)
 
     print("Shutdown worker")
 
@@ -90,10 +110,12 @@ def index():
 
 e = Event()
 t = Thread(target=periodic_update)
+d = Thread(target=periodic_detail_update)
 a = Thread(target=app.run, kwargs={
     "host": "0.0.0.0", "port": 6124
 })
 
 if __name__=='__main__':
     t.start()
+    # d.start()
     a.start()
