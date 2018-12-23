@@ -45,6 +45,21 @@ class Terminal(models.Model):
     short_name = models.CharField(max_length=16, null=False, blank=False)
     parking = models.IntegerField(null=True, blank=True)
 
+    @property
+    def routes(self) -> list:
+        return [
+            route.as_dict for route in Route.objects.filter(source=self)
+        ]
+
+    @property
+    def as_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "short_name": self.short_name,
+            "parking": self.parking,
+            "routes": self.routes
+        }
+
     def __str__(self) -> str:
         return self.name
 

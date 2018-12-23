@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import ping, ferry, sailing, route
+from .views import ping, ferry, sailing, route, terminal
 
 urlpatterns = [
     path('ping', ping, name="ping"),
@@ -11,4 +11,5 @@ urlpatterns = [
     path('sailings/<str:source>', sailing.get_sailing_by_route, name="get_sailing_from"),
     path('sailings/<str:source>/<str:destination>', sailing.get_sailing_by_route, name="get_sailing_from_and_to"),
     path('routes', route.get_all, name="get_all_routes"),
+    path('terminals', terminal.get_all, name="get_all_terminals"),
 ]
