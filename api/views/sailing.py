@@ -86,6 +86,7 @@ def get_sailing_by_route_id(request, route_id: int):
         logger.debug("Querying for sailings with route ID {}...".format(
             route_id
         ))
+        route = Route.objects.get(id=route_id)
         sailings = [
             s.as_dict for s in Sailing.objects.filter(
                 route__id=route_id
@@ -93,6 +94,10 @@ def get_sailing_by_route_id(request, route_id: int):
                 Q(scheduled_departure__gt=hour_ago)|Q(eta_or_arrival_time__gt=hour_ago)
             ).order_by('scheduled_departure')
         ]
+        data = {
+            "route": route.as_dict,
+            "sailings": sailings
+        }
     except Route.DoesNotExist:
         return error(
             request,
@@ -100,4 +105,4 @@ def get_sailing_by_route_id(request, route_id: int):
             "Unknown route"
         )
 
-    return response(request, sailings)
+    return response(request, data)
