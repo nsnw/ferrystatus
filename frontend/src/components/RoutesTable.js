@@ -85,7 +85,7 @@ const AllRoutesTable = ({ data }) =>
       <p></p>
       {data.map(el => (
         <div key={el.id} className="row mb-4">
-          <div className="col-12 row pr-0">
+          <div className="col-12 row p-0 m-0">
             <div className="col-10 p-1 pl-3 pt-2 bg-primary">
               <Link to={`/sailings/route/${el.id}`}>
                 <strong className="text-white">{el.name}</strong>
@@ -96,16 +96,16 @@ const AllRoutesTable = ({ data }) =>
               <div className={"col-6 text-center p-0 pt-1 bg-" + getWaitColour(el.oversize_waits)}>🚚</div>
             </div>
           </div>
-          <div className="row col-12 pr-0">
-            <div className="col-12 row pr-0">
-              <div className="col-4 pt-2 bg-dark text-white text-center">
+          <div className="row col-12 p-0 m-0">
+            <div className="col-12 row p-0 m-0">
+              <div className="col-4 pt-2 pl-1 bg-dark text-white text-center">
                 {formatRibbon(el.next_sailing)}
                 <Link to={`/sailings/${el.next_sailing.id}`}>
                   <h2><strong className="text-white">{formatDeparture(el.next_sailing)}</strong></h2>
                 </Link>
               </div>
               <div className="col-8 row pr-0">
-                <div className="col-lg-8 col-12 text-center p-0 flex-column justify-content-center card card-block">
+                <div className="col-lg-8 col-12 text-center p-0 pt-1 flex-column justify-content-center card card-block">
                   <h5>
                     {!el.next_sailing.ferry ? ( <strong className="text-black-50">TBC</strong> ) : ( <strong>{el.next_sailing.ferry}</strong> )}
                   </h5>

@@ -3,52 +3,7 @@ import { BrowserRouter as Router, Route, Link } from "react-router-dom";
 import PropTypes from "prop-types";
 import key from "weak-key";
 import { PercentFull } from "./PercentFull"
-
-var headers = {
-  'route': "Route",
-  'scheduled_departure': "Scheduled departure",
-  'state': "Status",
-  'ferry': "Ferry"
-};
-
-function getDepartedStateColour(value) {
-  let state = value;
-
-  if (state == "Not departed")
-    return "primary"
-  else if (state == "Departed")
-    return "info"
-  else
-    return "success"
-};
-
-function formatDeparture(sailing) {
-  var state;
-
-  if (sailing.actual_departure)
-    state = <span>{sailing.scheduled_departure_hour_minute} <i>({sailing.actual_departure_hour_minute})</i></span>
-  else
-    state = <span>{sailing.scheduled_departure_hour_minute}</span>
-
-  return state;
-};
-
-function formatStatus(sailing) {
-  let cssStatus = getDepartedStateColour(sailing.state);
-  var state;
-
-  if (sailing.status == "Cancelled")
-    state = <span class="tag is-danger is-normal"><strong className="has-text-white">Cancelled</strong></span>
-  else
-    if (sailing.state == "Departed")
-      state = <span><strong className={"has-text-" + cssStatus}>{sailing.state}</strong> <i>(ETA {sailing.eta_or_arrival_time_hour_minute})</i></span>
-    else if (sailing.state == "Arrived")
-      state = <span><strong className={"has-text-" + cssStatus}>{sailing.state}</strong> <i>({sailing.eta_or_arrival_time_hour_minute})</i></span>
-    else
-      state = <span><strong className={"has-text-" + cssStatus}>{sailing.state}</strong></span>
-  
-  return state;
-};
+import { getWaitColour, formatDeparture, formatStatus, formatRibbon, formatState } from "./Utils"
 
 function formatStatusText(sailing) {
   if (sailing.state == "Not departed" && sailing.status != "Cancelled" && sailing.status && sailing.status != "On Time")
@@ -94,29 +49,44 @@ AllSailingsTable.propTypes = {
 };
 
 const RouteSailingsTable = ({ data }) =>
-  !data.length ? (
+  !data.sailings ? (
     <p>No sailings found</p>
   ) : (
-    <div className="column">
-      <h1 className="title">
-        <strong>{data[0].route}</strong>
-      </h1>
-      <h3 className="subtitle">
-        <Link to="/sailings"><strong className="has-text-link">All sailings</strong></Link>
-      </h3>
-      {data.map(el => (
-        <div key={el.id} className="columns has-background-white-ter is-multiline">
-          <div className="column is-4"><Link to={`/sailings/${el.id}`}><strong>{el.route}</strong></Link></div>
-          <div className="column is-2">{formatDeparture(el)}</div>
-          <div className="column is-2">{formatStatus(el)}</div>
-          <div className="column is-2"><strong>{el.ferry}</strong></div>
-          <div className="column is-2">{!el.percent_full ? ( <p></p> ) : ( <PercentFull percentFull={el.percent_full} /> )}</div>
-          <div className="column is-12 is-divider is-marginless"></div>
+    <div className="row mb-4">
+      <div className="col-12 row p-0 m-0">
+        <div className="col-10 p-1 pl-3 pt-2 bg-primary">
+          <strong className="text-white">{data.route.name}</strong>
+        </div>
+        <div className="col-2 row p-0 mr-0">
+          <div className={"col-6 text-center p-0 pt-1 bg-" + getWaitColour(data.route.car_waits)}>🚗</div>
+          <div className={"col-6 text-center p-0 pt-1 bg-" + getWaitColour(data.route.oversize_waits)}>🚚</div>
+        </div>
+      </div>
+      {data.sailings.map(el => (
+        <div key={el.id} className="row col-12 p-0 m-0 pb-1">
+          <div className="col-12 row p-0 m-0">
+            <div className="col-4 pt-2 pl-1 bg-dark text-white text-center">
+              {formatRibbon(el)}
+              <Link to={`/sailings/${el.id}`}>
+                <h2><strong className="text-white">{formatDeparture(el)}</strong></h2>
+              </Link>
+            </div>
+            <div className="col-8 row pr-0">
+              <div className="col-lg-8 col-12 text-center p-0 pt-1 flex-column justify-content-center card card-block">
+                <h5>
+                  {!el.ferry ? ( <strong className="text-black-50">TBC</strong> ) : ( <strong>{el.ferry}</strong> )}
+                </h5>
+                {formatStatusText(el)}
+              </div>
+              <div className="col-lg-4 col-12 p-2 flex-column justify-content-center card card-block">{!el.percent_full ? ( <p></p> ) : ( <PercentFull percentFull={el.percent_full} /> )}</div>
+            </div>
+          </div>
         </div>
       ))}
     </div>
   );
 RouteSailingsTable.propTypes = {
-  data: PropTypes.array.isRequired
+  data: PropTypes.object.isRequired
 };
 export { RouteSailingsTable, AllSailingsTable };
+
