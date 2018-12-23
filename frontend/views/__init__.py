@@ -7,11 +7,8 @@ def home(request, params):
 def about(request):
     return render(request, 'frontend/about.html')
 
-def sailings(request, params):
-    return render(request, 'frontend/sailings.html')
+def faq(request):
+    return render(request, 'frontend/faq.html')
 
-def ferries(request):
-    return render(request, 'frontend/ferries.html')
-
-def routes(request, params):
-    return render(request, 'frontend/routes.html')
+def privacy(request):
+    return render(request, 'frontend/privacy.html')
