@@ -15,6 +15,9 @@ make-migrations:
 run-migrations:
 	./manage.py migrate
 
+update:
+	./manage.py update
+
 migrations: make-migrations run-migrations
 
 build: migrations build-ui-dev
