@@ -1,6 +1,8 @@
 from bcfdata.settings.base import *
 import os
 
+SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
