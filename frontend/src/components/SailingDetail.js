@@ -142,8 +142,8 @@ const SailingDetail = ({ data }) =>
       )}
       <div className="row justify-content-between mb-5">
         <div className="col-6 text-left">
-            <Link className="btn btn-primary" to="/sailings">
-              <strong className="has-text-link">↩ All sailings</strong>
+            <Link className="btn btn-primary" to="/routes">
+              <strong className="has-text-link">↩ All routes</strong>
             </Link>
         </div>
         <div className="col-6 text-right">
