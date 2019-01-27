@@ -1,6 +1,7 @@
 image: docker.nsnw.ca/python3:latest
 
 before_script:
+  - apt install -y locales
   - locale-gen en_US.UTF-8
   - python3 -V
   - which python3
