@@ -1,8 +1,7 @@
 image: docker.nsnw.ca/python3:latest
 
 before_script:
-  - apt install -y locales
-  - locale-gen en_US.UTF-8
+  - apt install -y libgraphviz-dev
   - python3 -V
   - which python3
   - pip3 install -r requirements.txt
@@ -13,7 +12,3 @@ stages:
 test:
   stage: test
   script: python3 ./manage.py test
-
-variables:
-  LANG: en_US.UTF-8
-  LANGUAGE: en_US:en
