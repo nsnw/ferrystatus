@@ -5,12 +5,6 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "npm-run-all dev:*",
-    "build": "npm-run-all build:*",
-    "dev:sailings": "webpack --mode development ./frontend/src/sailings.js --output ./frontend/static/frontend/sailings.js",
-    "dev:ferries": "webpack --mode development ./frontend/src/ferries.js --output ./frontend/static/frontend/ferries.js",
-    "build:sailings": "webpack --mode production ./frontend/src/sailings.js --output ./frontend/static/frontend/sailings.js",
-    "build:ferries": "webpack --mode production ./frontend/src/ferries.js --output ./frontend/static/frontend/ferries.js",
     "all:dev": "webpack --mode development ./frontend/src/index.js --output ./frontend/static/frontend/dist/js/bundle.js",
     "all:prod": "webpack --mode production ./frontend/src/index.js --output ./frontend/static/frontend/dist/js/bundle.js"
   },
