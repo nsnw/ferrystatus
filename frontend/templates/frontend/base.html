@@ -27,12 +27,8 @@
   <meta name="msapplication-square310x310logo" content="/static/frontend/img/mstile-310x310.png" />
 </head>
 <body>
-  {% include "frontend/nav.html" %}
-  <p></p>
-  <div class="container pb-2">
-    {% block content %}
-    {% endblock %}
-  </div>
+  {% block content %}
+  {% endblock %}
   <footer class="footer">
     <div class="container">
       <span><small>&copy; 2018 Andy Smith, data from <a href="https://www.bcferries.com/">BC Ferries</a>. <a href="/privacy">Privacy policy</a></small></span>
