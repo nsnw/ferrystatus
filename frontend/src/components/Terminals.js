@@ -4,9 +4,10 @@ import { Link } from "react-router-dom";
 import DataProvider from "./DataProvider";
 import key from "weak-key";
 import PropTypes from "prop-types";
-import { PercentFull } from "./PercentFull"
+import { PercentFull } from "./PercentFull";
+import { BasePage } from "./Base";
 
-const TerminalCards = ({ data }) =>
+const TerminalCardsInner = ({ data }) =>
   !data.length ? (
     <p>No routes found</p>
   ) : (
@@ -35,6 +36,9 @@ const TerminalCards = ({ data }) =>
       </div>
     </div>
   );
+
+const TerminalCards = ({ data }) =>
+  <BasePage data={<TerminalCardsInner data={data} />} />
 
 TerminalCards.propTypes = {
   data: PropTypes.array.isRequired

@@ -12,12 +12,16 @@ import { Ferries } from "./components/Ferries";
 import { ReallyAllSailings, AllSailings, RouteSailings, Sailing } from "./components/Sailings";
 import { AllRoutes } from "./components/Routes";
 import { Terminal, AllTerminals } from "./components/Terminals";
+import { BasePage } from "./components/Base";
+import { AboutPage, FAQPage, PrivacyPage } from "./components/Misc";
 
 const Page404 = ({ location }) => (
-  <div>
-    <h1>Not found</h1>
-    <p>Nothing here, sorry!</p>
-  </div>
+  <BasePage data={
+    <div>
+      <h1>Not found</h1>
+      <p>Nothing here, sorry!</p>
+    </div>
+  } />
 )
 
 ReactDOM.render((
@@ -29,6 +33,9 @@ ReactDOM.render((
       <Route exact path="/sailings" component={AllSailings}/>
       <Route exact path="/all-sailings" component={ReallyAllSailings}/>
       <Route exact path="/terminals" component={AllTerminals}/>
+      <Route exact path="/about" component={AboutPage}/>
+      <Route exact path="/faq" component={FAQPage}/>
+      <Route exact path="/privacy" component={PrivacyPage}/>
       <Route path="/routes/:routeId" component={AllRoutes}/>
       <Route path="/sailings/route/:routeId" component={RouteSailings}/>
       <Route path="/sailings/:sailingId" component={Sailing}/>

@@ -4,13 +4,14 @@ import PropTypes from "prop-types";
 import key from "weak-key";
 import { PercentFull } from "./PercentFull"
 import { getWaitColour, formatDeparture, formatStatus, formatRibbon, formatState } from "./Utils"
+import { BasePage } from "./Base";
 
 function formatStatusText(sailing) {
   if (sailing.state == "Not departed" && sailing.status != "Cancelled" && sailing.status && sailing.status != "On Time")
     return <td colSpan="5"><small> → {sailing.status}</small></td>
 };
 
-const AllSailingsTable = ({ data }) =>
+const AllSailingsTableInner = ({ data }) =>
   !data.length ? (
     <p>No sailings found</p>
   ) : (
@@ -44,11 +45,15 @@ const AllSailingsTable = ({ data }) =>
       ))}
     </div>
   );
+
+const AllSailingsTable = ({ data }) =>
+  <BasePage data={<AllSailingsTableInner data={data} />} />
+
 AllSailingsTable.propTypes = {
   data: PropTypes.array.isRequired
 };
 
-const RouteSailingsTable = ({ data }) =>
+const RouteSailingsTableInner = ({ data }) =>
   !data.sailings ? (
     <p>No sailings found</p>
   ) : (
@@ -85,6 +90,11 @@ const RouteSailingsTable = ({ data }) =>
       ))}
     </div>
   );
+
+const RouteSailingsTable = ({ data }) =>
+  <BasePage data={<RouteSailingsTableInner data={data} />} />
+
+
 RouteSailingsTable.propTypes = {
   data: PropTypes.object.isRequired
 };

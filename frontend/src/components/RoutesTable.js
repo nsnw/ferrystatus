@@ -2,7 +2,9 @@ import React from "react";
 import { BrowserRouter as Router, Route, Link } from "react-router-dom";
 import PropTypes from "prop-types";
 import key from "weak-key";
-import { PercentFull } from "./PercentFull"
+import { PercentFull } from "./PercentFull";
+import { BasePage } from "./Base";
+
 var moment = require('moment-timezone');
 
 function randomPercent() {
@@ -74,7 +76,7 @@ function formatStatus(sailing) {
   return state;
 };
 
-const AllRoutesTable = ({ data }) =>
+const AllRoutesTableInner = ({ data }) =>
   !data.length ? (
     <p>No routes found</p>
   ) : (
@@ -118,6 +120,10 @@ const AllRoutesTable = ({ data }) =>
       ))}
     </div>
   );
+
+const AllRoutesTable = ({ data }) =>
+  <BasePage data={<AllRoutesTableInner data={data} />} />
+
 AllRoutesTable.propTypes = {
   data: PropTypes.array.isRequired
 };

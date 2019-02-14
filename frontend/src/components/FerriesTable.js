@@ -1,6 +1,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 import key from "weak-key";
+import { BasePage } from "./Base";
 
 var keys = ['name', 'status', 'last_updated'];
 var headers = {
@@ -9,7 +10,7 @@ var headers = {
   'last_updated': "Last updated"
 };
 
-const FerriesTable = ({ data }) =>
+const FerriesTableInner = ({ data }) =>
   !data.length ? (
     <p>Nothing to show</p>
   ) : (
@@ -33,6 +34,10 @@ const FerriesTable = ({ data }) =>
       </table>
     </div>
   );
+
+const FerriesTable = ({ data }) =>
+  <BasePage data={<FerriesTableInner data={data} />} />
+
 FerriesTable.propTypes = {
   data: PropTypes.array.isRequired
 };

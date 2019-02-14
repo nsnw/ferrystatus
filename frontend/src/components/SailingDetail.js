@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Route, Link } from "react-router-dom";
 import PropTypes from "prop-types";
 import { PercentFull } from "./PercentFull";
 import key from "weak-key";
+import { BasePage } from "./Base";
 
 function getDepartedStateColour(value) {
   let state = value;
@@ -99,7 +100,7 @@ function formatAverages(sailing) {
 };
 
 
-const SailingDetail = ({ data }) =>
+const SailingDetailInner = ({ data }) =>
   !data.route ? (
     <p>Sailing not found</p>
   ) : (
@@ -154,6 +155,10 @@ const SailingDetail = ({ data }) =>
       </div>
     </div>
   );
+
+const SailingDetail = ({ data }) =>
+  <BasePage data={<SailingDetailInner data={data} />} />
+
 SailingDetail.propTypes = {
   data: PropTypes.object.isRequired
 };
