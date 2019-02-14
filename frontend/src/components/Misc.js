@@ -22,11 +22,11 @@ const FAQPage = () =>
       </p>
       <h2><strong>I've found a bug, what do I do?</strong></h2>
       <p>
-      Let me know! Drop me an email (to <a href="mailto:andy@nsnw.ca">andy@nsnw.ca</a>) with the details and I'll take a look!
+      Let me know! Either <a href="https://github.com/ve7cxz/ferrystatus/issues/new">create an issue on GitHub</a> or drop me an email (to <a href="mailto:andy@nsnw.ca">andy@nsnw.ca</a>) with the details and I'll take a look!
       </p>
       <h2><strong>I've had an idea!</strong></h2>
       <p>
-      Again, let me know - to the same address above! I can't promise anything, as this is something I work on in my spare time, but if it's a good idea I'll see what I can do.
+      Again, let me know - either via GitHub or via email to the same address above! I can't promise anything, as this is something I work on in my spare time, but if it's a good idea I'll see what I can do.
       </p>
       <h2><strong>Technical details! Hit me!</strong></h2>
       <p>
@@ -36,7 +36,7 @@ const FAQPage = () =>
       There is an API of sorts (which you can see if you poke around under the hood), but it's by no means guaranteed to be stable.
       </p>
       <p>
-      The source code is not yet publicly available, mostly due to it being an utter mess that I need to clean up first. This will change in the near future.
+      The source code can be found on <a href="https://github.com/ve7cxz/ferrystatus">GitHub</a> under an <a href="https://opensource.org/licenses/MIT">MIT</a> license.
       </p>
     </>
   } />
