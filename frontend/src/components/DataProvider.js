@@ -1,5 +1,7 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
+import { BasePage } from "./Base";
+
 class DataProvider extends Component {
   static propTypes = {
     endpoint: PropTypes.string.isRequired,
@@ -10,7 +12,7 @@ class DataProvider extends Component {
   state = {
       data: [],
       loaded: false,
-      placeholder: "Loading..."
+      placeholder: <BasePage data="Loading _.-⛴-._.- " />
     };
   componentDidMount() {
     let endpoint = this.props.endpoint;
