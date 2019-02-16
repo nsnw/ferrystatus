@@ -3,6 +3,7 @@ from django.db.models import Avg, Max, Min, QuerySet
 from django.conf import settings
 from polymorphic.models import PolymorphicModel
 from datetime import datetime, timedelta
+from typing import Union
 import pytz
 from enum import Enum
 import logging
@@ -405,47 +406,92 @@ class Sailing(models.Model):
 
     @property
     def scheduled_arrival_hour_minute(self) -> str:
+        """ Return the local scheduled arrival time in HH:MM format.
+
+        :returns: the local scheduled arrival time in HH:MM format
+        :rtype: str
+        """
+
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
         return self.scheduled_arrival.astimezone(tz).strftime("%-I:%M%p").lower()
 
     @property
     def actual_departure_hour_minute(self) -> str:
+        """ Return the actual departure time in HH:MM format.
+
+        :returns: the actual departure time in HH:MM format
+        :rtype: str
+        """
+
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
         return self.actual_departure.astimezone(tz).strftime("%-I:%M%p").lower()
 
     @property
     def eta_or_arrival_time_hour_minute(self) -> str:
+        """ Return the ETA/arrival time in HH:MM format.
+
+        :returns: the ETA/arrival time in HH:MM format
+        :rtype: str
+        """
+
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
         return self.eta_or_arrival_time.astimezone(tz).strftime("%-I:%M%p").lower()
 
     @property
     def is_full(self) -> bool:
+        """ Returns whether the sailing is full or not.
+
+        :returns: whether the sailing is full or not
+        :rtype: bool
+        """
+
         if self.percent_full == 100:
             return True
         else:
             return False
 
     @property
-    def full_time(self):
+    def full_time(self) -> Union[datetime, None]:
+        """ If the sailing is full, return the time that it filled up.
+
+        :returns: the time the sailing reached 100% full
+        :rtype: str
+        """
+
         if self.is_full:
-            # Get the 100% status event
+            # Sailing is full, so get the 100% status event
             e = self.sailingevent_set.instance_of(PercentFullEvent).\
                 filter(percentfullevent__new_value=100).get()
             return e.timestamp
         else:
+            # Sailing isn't full, so there's no timestamp to return
             return None
 
     @property
-    def full_time_delta(self):
+    def full_time_delta(self) -> Union[int, None]:
+        """ If the sailing is full, return the number of minutes before the scheduled departure that it filled up.
+
+        :returns: minutes before departure the sailing filled up
+        :rtype: int
+        """
+
         if self.is_full:
+            # Sailing is full, calculate the delta
             delta = self.scheduled_departure - self.full_time
             minutes = math.floor(delta.seconds / 60)
             return minutes
         else:
+            # Sailing isn't full, so no delta to calculate
             return None
 
     @property
-    def aggregate_percent_full(self) -> float:
+    def aggregate_percent_full(self) -> dict:
+        """ Calculate the aggregate min/max/avg for how full this sailing normally is.
+
+        :returns: min/max/average percentage full norms for this sailing
+        :rtype: dict
+        """
+
         aggregate = Sailing.objects.filter(
             route__id=self.route.id,
             sailing_time=self.sailing_time,
