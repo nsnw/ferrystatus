@@ -4,6 +4,7 @@ from .models import (Terminal, Route, Ferry, Sailing, Destination, Status,
                      FerryEvent, DepartureTimeEvent, DepartedEvent,
                      PercentFullEvent, CarWaitEvent, OversizeWaitEvent)
 
+# Register models with the admin site
 admin.site.register(Terminal)
 admin.site.register(Route)
 admin.site.register(Ferry)
@@ -20,5 +21,3 @@ admin.site.register(DepartedEvent)
 admin.site.register(PercentFullEvent)
 admin.site.register(CarWaitEvent)
 admin.site.register(OversizeWaitEvent)
-
-# Register your models here.
