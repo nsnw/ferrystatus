@@ -1,13 +1,7 @@
-from django.core.management.base import BaseCommand, CommandError
-from django.db.utils import OperationalError, ProgrammingError
-from data.models import Terminal, Route, Ferry, Sailing
+from django.core.management.base import BaseCommand
 from data.utils import (get_actual_departures, get_current_conditions,
                         get_ferry_locations)
 import logging
-import os
-import re
-from datetime import datetime
-from time import sleep
 
 logger = logging.getLogger(__name__)
 
