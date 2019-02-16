@@ -1,10 +1,8 @@
 from django.db import models
 from django.conf import settings
 from polymorphic.models import PolymorphicModel
-from datetime import datetime, timedelta
 import pytz
-import logging
-# Create your models here.
+
 
 class Run(PolymorphicModel):
     timestamp = models.DateTimeField(auto_now=True)
@@ -41,6 +39,10 @@ class DeparturesRun(Run):
 
 
 class LocationsRun(Run):
+    pass
+
+
+class SailingDetailRun(Run):
     pass
 
 

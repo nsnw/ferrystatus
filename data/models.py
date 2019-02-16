@@ -1,10 +1,9 @@
 from django.db import models
-from django.db.models import Avg, Max, Min
+from django.db.models import Avg, Max, Min, QuerySet
 from django.conf import settings
 from polymorphic.models import PolymorphicModel
 from datetime import datetime, timedelta
 import pytz
-from pytz import timezone
 from enum import Enum
 import logging
 import math
@@ -13,18 +12,24 @@ logger = logging.getLogger(__name__)
 
 BCF_URL_BASE = "https://www.bcferries.com/current_conditions"
 
+
+# TODO - check and replace with function in .utils
 def get_local_time():
     tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
     now = datetime.now().astimezone(tz)
     return now
 
+
+# TODO - move this to .utils
 def get_local_midnight():
     tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
     tomorrow = datetime.now().astimezone(tz) + timedelta(days=1)
     midnight = tomorrow.replace(hour=0, minute=0, second=0, microsecond=0)
     return midnight
 
+
 class DayOfWeek(Enum):
+    """ Enum to represent days of the week """
     MON = "Monday"
     TUE = "Tuesday"
     WED = "Wednesday"
@@ -35,24 +40,37 @@ class DayOfWeek(Enum):
 
 
 class FerryStatus(Enum):
+    """ Enum to represent ferry status """
     IN_PORT = "In Port"
     UNDER_WAY = "Under Way"
     OFFLINE = "Offline"
 
 
 class Terminal(models.Model):
+    """ Model to represent a Terminal """
+
     name = models.CharField(max_length=64, null=False, blank=False)
     short_name = models.CharField(max_length=16, null=False, blank=False)
     parking = models.IntegerField(null=True, blank=True)
 
     @property
     def routes(self) -> list:
+        """ Returns a list of routes originating from this terminal
+
+        :returns: list of routes originating from this terminal
+        :rtype: list
+        """
         return [
             route.as_dict for route in Route.objects.filter(source=self)
         ]
 
     @property
     def as_dict(self) -> dict:
+        """ Returns the current Terminal object as a dict
+
+        :returns: dict representation of the terminal
+        :rtype: dict
+        """
         return {
             "name": self.name,
             "short_name": self.short_name,
@@ -68,7 +86,10 @@ class Terminal(models.Model):
 
 
 class Destination(models.Model):
+    """ Model to represent a Terminal. """
+
     name = models.CharField(max_length=64, null=False, blank=False)
+    # Destinations can also be Terminals
     terminal = models.ForeignKey(Terminal, null=True, blank=True, on_delete=models.DO_NOTHING)
 
     def __str__(self) -> str:
@@ -76,18 +97,34 @@ class Destination(models.Model):
 
 
 class Route(models.Model):
+    """ Model to represent a Route. """
+
     name = models.CharField(max_length=256, null=False, blank=False)
+
+    # All Routes have a source Terminal
     source = models.ForeignKey(Terminal, null=False, blank=False,
                                on_delete=models.DO_NOTHING)
+    # All Routes have a Destination (but not all of the Destinations have associated Terminals)
     destination = models.ForeignKey(Destination, null=False, blank=False,
                                     on_delete=models.DO_NOTHING)
     route_code = models.IntegerField(null=False, blank=False)
+
+    # Car waits and oversize vehicle waits
     car_waits = models.IntegerField(default=None, null=True, blank=True)
     oversize_waits = models.IntegerField(default=None, null=True, blank=True)
+
+    # Route sailing duration
     duration = models.IntegerField(null=True, blank=True)
 
     @property
     def url(self) -> str:
+        """ Return the URL for this route.
+
+        :returns: URL for this route
+        :rtype: str
+        """
+
+        # Build URL based on the source's short code and the route code
         return "{}/arrivals-departures.html?dept={}&route={}".format(
             BCF_URL_BASE,
             self.source.short_name,
@@ -96,6 +133,13 @@ class Route(models.Model):
 
     @property
     def next_sailing(self) -> "Sailing":
+        """ Return the next Sailing for this route.
+
+        :returns: Sailing object representing the next sailing on this route
+        :rtype: Sailing
+        """
+
+        # Get the next (by time) Sailing object for this Route
         sailing = Sailing.objects.filter(
             route=self,
             scheduled_departure__gt=datetime.now(pytz.UTC)
@@ -104,10 +148,18 @@ class Route(models.Model):
         return sailing
 
     @property
-    def sailings_today(self):
+    def sailings_today(self) -> QuerySet:
+        """ Return a Django QuerySet containing all of today's Sailings for this Route.
+
+        :returns: QuerySet of Sailings for this Route
+        :rtype: QuerySet
+        """
+
+        # Get the current local time and the local midnight time
         now = get_local_time()
         midnight = get_local_midnight()
 
+        # Get the QuerySet of Sailings for this Route
         sailings = Sailing.objects.filter(
             route=self,
             scheduled_departure__gt=now,
@@ -116,9 +168,15 @@ class Route(models.Model):
 
         return sailings
 
-
     @property
     def as_dict(self) -> dict:
+        """ Return a dict representation of this Sailing.
+
+        :returns: a dict representing this Sailing
+        :rtype: dict
+        """
+
+        # Build dict
         response = {
             "id": self.pk,
             "name": self.name,
@@ -144,24 +202,49 @@ class Route(models.Model):
 
 
 class Ferry(models.Model):
+    """ Model representing a Ferry. """
+
     name = models.CharField(max_length=64, null=False, blank=False)
+
+    # A Ferry can have a Destination, but it doesn't have to
     destination = models.ForeignKey(Destination, null=True, blank=True, on_delete=models.DO_NOTHING)
+
+    # Status uses the FerryStatus enumerable
     status = models.CharField(max_length=32, choices=[
         (tag, tag.value) for tag in FerryStatus
     ], null=True, blank=True)
+
+    # The time and date of the latest ferry position, and the heading
     last_updated = models.DateTimeField(auto_now=True)
     heading = models.CharField(max_length=8, null=True, blank=True)
 
     @property
     def current_sailing(self) -> "Sailing":
+        """ Return the current Sailing that a Ferry is associated with, if any.
+
+        :returns: the current Sailing this Ferry is associated with
+        :rtype: Sailing
+        """
+
+        # TODO - this should not be a bare except, and it should differentiate between no results (to be expected)
+        # and multiple results (hilariously impossible)
         try:
+            # Return a single sailing associated with this Ferry, based on it having departed but not yet arrived
             return self.sailing_set.get(departed=True, arrived=False)
         except:
             return None
 
     @property
     def next_sailing(self) -> "Sailing":
+        """ Return the next Sailing that a Ferry is associated with, if any.
+
+        :returns: the next (by time) Sailing this Ferry is associated with
+        :rtype: Sailing
+        """
+
+        # TODO - as above, this should not catch a bare except
         try:
+            # Return the first Sailing for this Ferry that hasn't departed
             return self.sailing_set.filter(departed=False).\
                 order_by("scheduled_departure").\
                 first()
@@ -170,15 +253,25 @@ class Ferry(models.Model):
 
     @property
     def as_dict(self) -> dict:
+        """ Return a dict representation of this Ferry.
+
+        :returns: a dict representing this Ferry
+        :rtype: dict
+        """
+
+        # Build dict
         response = {
             "name": self.name,
             "status": self.status,
             "last_updated": self.last_updated
         }
 
+        # TODO - these could be added above
+        # If the Ferry currently has a Destination, add it
         if self.destination:
             response['destination'] = self.destination.name
 
+        # If the Ferry has a heading set, add it
         if self.heading:
             response['heading'] = self.heading
 
@@ -192,6 +285,8 @@ class Ferry(models.Model):
 
 
 class Status(models.Model):
+    """ Model representing a Sailing status. """
+
     status = models.CharField(max_length=256, null=False, blank=False)
 
     def __str__(self) -> str:
@@ -202,50 +297,109 @@ class Status(models.Model):
 
 
 class Sailing(models.Model):
+    """ Model representing a Sailing. """
+
+    # Sailings have a Route
     route = models.ForeignKey(Route, null=False, blank=False, on_delete=models.DO_NOTHING)
+
+    # ...and can also have a Ferry, though this *may* be empty if we're creating this during the previous day
     ferry = models.ForeignKey(Ferry, null=True, blank=True, on_delete=models.DO_NOTHING)
+
+    # Date and time this sailing was added to the database
     sailing_created = models.DateTimeField(auto_now=True)
+
+    # The scheduled departure and arrival times
     scheduled_departure = models.DateTimeField(null=False, blank=False)
     scheduled_arrival = models.DateTimeField(null=True, blank=True)
+
+    # The actual departure time
     actual_departure = models.DateTimeField(null=True, blank=True)
+
+    # The ETA (if underway) or the time the ferry on this sailing arrived
     eta_or_arrival_time = models.DateTimeField(null=True, blank=True)
+
+    # Current status of the sailing
     status = models.ForeignKey(Status, null=True, blank=True, on_delete=models.DO_NOTHING)
+
+    # Booleans for whether the sailing has departed or arrived
     departed = models.BooleanField(default=False)
     arrived = models.BooleanField(default=False)
+
+    # How full the sailing is (overall, cars, oversize) in percent, represented as an integer
     percent_full = models.IntegerField(default=None, null=True, blank=True)
     car_percent_full = models.IntegerField(default=None, null=True, blank=True)
     oversize_percent_full = models.IntegerField(default=None, null=True, blank=True)
+
+    # String representation of the local time for the scheduled departure of this sailing
     sailing_time = models.CharField(max_length=8, null=True, blank=True)
+
+    # Which day of the week this sailing is on
     day_of_week = models.CharField(max_length=16, choices=[
         (tag, tag.value) for tag in DayOfWeek
     ], null=True, blank=True)
+
+    # How late the sailing was leaving and arriving - negative values represent leaving and arriving early
     late_leaving = models.IntegerField(null=True, blank=True)
     late_arriving = models.IntegerField(null=True, blank=True)
+
+    # How long this sailing took
     duration = models.IntegerField(null=True, blank=True)
+
+    # Boolean for if the sailing is cancelled
     cancelled = models.BooleanField(default=False)
 
     @property
     def scheduled_departure_local(self) -> str:
+        """ Returns the local scheduled departure time.
+
+        :returns: the local scheduled departure time
+        :rtype: str
+        """
+
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
         return self.scheduled_departure.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S")
 
     @property
     def scheduled_arrival_local(self) -> str:
+        """ Returns the local scheduled arrival time.
+
+        :returns: the local scheduled arrival time
+        :rtype: str
+        """
+
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
         return self.scheduled_arrival.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S")
 
     @property
     def actual_departure_local(self) -> str:
+        """ Returns the local actual departure time.
+
+        :returns: the local actual departure time
+        :rtype: str
+        """
+
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
         return self.actual_departure.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S")
 
     @property
     def eta_or_arrival_time_local(self) -> str:
+        """ Returns the local ETA or arrival time.
+
+        :returns: the local ETA or arrival time
+        :rtype: str
+        """
+
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
         return self.eta_or_arrival_time.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S")
 
     @property
     def scheduled_departure_hour_minute(self) -> str:
+        """ Returns the local scheduled departure time in HH:MM format.
+
+        :returns: the local scheduled departure time in HH:MM format
+        :rtype: str
+        """
+
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
         return self.scheduled_departure.astimezone(tz).strftime("%-I:%M%p").lower()
 
@@ -400,8 +554,6 @@ class Sailing(models.Model):
         else:
             return "Not departed"
 
-
-
     @property
     def info(self) -> str:
         info = "{}: {}".format(str(self), self.state)
@@ -492,7 +644,6 @@ class Sailing(models.Model):
 
         super(Sailing, self).save(*args, **kwargs)
 
-
     def __str__(self) -> str:
         return "{} @ {}".format(self.route, self.scheduled_departure_local)
 
@@ -507,7 +658,7 @@ class SailingEvent(PolymorphicModel):
         return self.timestamp.astimezone(tz).strftime("%H:%M")
 
     @property
-    def as_dict(self) -> str:
+    def as_dict(self) -> dict:
         return {
             "timestamp": self.timestamp,
             "local_time": self.time,
@@ -614,6 +765,7 @@ class ArrivalTimeEvent(SailingEvent):
             self.arrival
         )
 
+
 class DepartedEvent(SailingEvent):
     @property
     def text(self) -> str:
@@ -637,8 +789,10 @@ class ArrivedEvent(SailingEvent):
 
 
 class StatusEvent(SailingEvent):
-    old_status = models.ForeignKey(Status, null=True, blank=True, related_name="old_status", on_delete=models.DO_NOTHING)
-    new_status = models.ForeignKey(Status, null=True, blank=True, related_name="new_status", on_delete=models.DO_NOTHING)
+    old_status = models.ForeignKey(Status, null=True, blank=True, related_name="old_status",
+                                   on_delete=models.DO_NOTHING)
+    new_status = models.ForeignKey(Status, null=True, blank=True, related_name="new_status",
+                                   on_delete=models.DO_NOTHING)
 
     @property
     def text(self) -> str:
@@ -651,8 +805,10 @@ class StatusEvent(SailingEvent):
 
 
 class FerryEvent(SailingEvent):
-    old_ferry = models.ForeignKey(Ferry, null=True, blank=True, related_name="old_ferry", on_delete=models.DO_NOTHING)
-    new_ferry = models.ForeignKey(Ferry, null=True, blank=True, related_name="new_ferry", on_delete=models.DO_NOTHING)
+    old_ferry = models.ForeignKey(Ferry, null=True, blank=True, related_name="old_ferry",
+                                  on_delete=models.DO_NOTHING)
+    new_ferry = models.ForeignKey(Ferry, null=True, blank=True, related_name="new_ferry",
+                                  on_delete=models.DO_NOTHING)
 
     @property
     def text(self) -> str:
