@@ -507,7 +507,13 @@ class Sailing(models.Model):
         return aggregate
 
     @property
-    def aggregate_leaving(self) -> float:
+    def aggregate_leaving(self) -> dict:
+        """ Calculate the aggregate min/max/avg for how early/late leaving this sailing normally is.
+
+        :returns: min/max/average early/late leaving norms for this sailing
+        :rtype: dict
+        """
+
         aggregate = Sailing.objects.filter(
             route__id=self.route.id,
             sailing_time=self.sailing_time,
@@ -523,7 +529,13 @@ class Sailing(models.Model):
         return aggregate
 
     @property
-    def aggregate_arriving(self) -> float:
+    def aggregate_arriving(self) -> dict:
+        """ Calculate the aggregate min/max/avg for how early/late arriving this sailing normally is.
+
+         :returns: min/max/average early/late arriving norms for this sailing
+         :rtype: dict
+         """
+
         aggregate = Sailing.objects.filter(
             route__id=self.route.id,
             sailing_time=self.sailing_time,
@@ -540,6 +552,15 @@ class Sailing(models.Model):
 
     @property
     def as_dict(self) -> dict:
+        """ Return a dict representation of the object.
+
+        This returns a dict representation of the Sailing object.
+
+        :returns: dict representation of the Sailing object
+        :rtype: dict
+        """
+
+        # Build base response
         response = {
             "id": self.pk,
             "route": self.route.name,
@@ -554,30 +575,38 @@ class Sailing(models.Model):
             }
         }
 
+        # If this sailing has a ferry, add that
         if self.ferry:
             response['ferry'] = self.ferry.name
 
+        # If this sailing has departed, add that
         if self.actual_departure:
             response['actual_departure'] = self.actual_departure_local
             response['actual_departure_hour_minute'] = self.actual_departure_hour_minute
 
+        # If this sailing has an ETA or an arrival time, add that
         if self.eta_or_arrival_time:
             response['eta_or_arrival_time'] = self.eta_or_arrival_time_local
             response['eta_or_arrival_time_hour_minute'] = self.eta_or_arrival_time_hour_minute
 
+        # If this sailing has a scheduled arrival time, add that
         if self.scheduled_arrival:
             response['scheduled_arrival'] = int(self.scheduled_arrival.strftime("%s"))
             response['scheduled_arrival_hour_minute'] = self.scheduled_arrival_hour_minute
 
+        # If the sailing has a status, add that
         if self.status:
             response['status'] = self.status.status
 
+        # If the sailing has a percentage, add that
         if self.percent_full:
             response['percent_full'] = self.percent_full
 
+        # If there's a duration, add that
         if self.duration:
             response['duration'] = self.duration
 
+        # If we have a late/early arrival and/or departure, add that
         if self.late_leaving:
             response['late_leaving'] = self.late_leaving
 
@@ -592,6 +621,12 @@ class Sailing(models.Model):
 
     @property
     def state(self) -> str:
+        """ Return a human-readable not departed/departed/arrived status.
+
+        :returns: human-readable departure status
+        :rtype: str
+        """
+
         if self.departed:
             if self.arrived:
                 return "Arrived"
@@ -602,6 +637,12 @@ class Sailing(models.Model):
 
     @property
     def info(self) -> str:
+        """ Return a text-based representation of the sailing for debug purposes.
+
+        :returns: text-based representation of the sailing
+        :rtype: str
+        """
+
         info = "{}: {}".format(str(self), self.state)
 
         if self.ferry:
@@ -621,25 +662,44 @@ class Sailing(models.Model):
 
         return info
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs) -> None:
+        """ Override the standard save() method and calculate a few things before saving.
+
+        We override the standard save() method to set a few things before saving:-
+        * the day of the week
+        * the sailing time in HH:MM format
+        * the actual duration of the sailing, if available
+        * the scheduled arrival time
+        * how early/late departing/arriving the sailing is
+
+        :returns: nothing
+        :rtype: None
+        """
+
+        # If the object has no weekday saved, add one. While we could determine this from the scheduled departure time,
+        # this makes it much easier to aggregate based on the day of the week
         if not self.day_of_week:
             tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
             day_of_week = self.scheduled_departure.astimezone(tz).strftime("%A")
             self.day_of_week = day_of_week
 
+        # If the sailing time isn't set, set it
         if not self.sailing_time:
             tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
             self.sailing_time = self.scheduled_departure.astimezone(tz).strftime("%H:%M")
 
+        # If there's no duration, and the sailing has arrived, calculate and set the duration
         if not self.duration and self.arrived is True:
             td = self.eta_or_arrival_time - self.actual_departure
             self.duration = td.seconds / 60
             logger.debug("Sailing duration was {}".format(self.duration))
 
+        # If no scheduled arrival is set, set it
         if not self.scheduled_arrival:
             self.scheduled_arrival = self.scheduled_departure + timedelta(minutes=self.route.duration)
             logger.debug("Set scheduled arrival to {}".format(self.scheduled_arrival_hour_minute))
 
+        # Set the early/late departure/arrival times
         if not self.late_leaving and self.departed is True:
             if self.actual_departure < self.scheduled_departure:
                 logger.debug("Sailing left early")
@@ -688,23 +748,46 @@ class Sailing(models.Model):
                 "early" if early else "late"
             ))
 
+        # Call the original save()  method
         super(Sailing, self).save(*args, **kwargs)
 
     def __str__(self) -> str:
+        """ Return a string representation of the object.
+
+        :returns: string representation of the object
+        :rtype: str
+        """
+
         return "{} @ {}".format(self.route, self.scheduled_departure_local)
 
 
 class SailingEvent(PolymorphicModel):
+    """ Model representing a sailing event. """
+
+    # The Sailing object this event relates to
     sailing = models.ForeignKey(Sailing, null=False, blank=False, on_delete=models.DO_NOTHING)
+    # The time this event was created
     timestamp = models.DateTimeField(auto_now=True)
 
     @property
     def time(self) -> str:
+        """ Return the time of the event in HH:MM format.
+
+        :returns: time of the event in HH:MM format
+        :rtype: str
+        """
+
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
         return self.timestamp.astimezone(tz).strftime("%H:%M")
 
     @property
     def as_dict(self) -> dict:
+        """ Return a dict representation of of the object.
+
+        :returns: dict representation of the object
+        :rtype: dict
+        """
+
         return {
             "timestamp": self.timestamp,
             "local_time": self.time,
@@ -713,31 +796,62 @@ class SailingEvent(PolymorphicModel):
 
 
 class RouteEvent(PolymorphicModel):
+    """ Model representing a route event. """
+
+    # Route object that this event is associated with
     route = models.ForeignKey(Route, null=False, blank=False, on_delete=models.DO_NOTHING)
+    # Time that the event was created
     timestamp = models.DateTimeField(auto_now=True)
 
     @property
     def time(self) -> str:
+        """ Return the time of the event as a string.
+
+        :returns: time of the event
+        :rtype: str
+        """
+
+        # TODO - should this be in HH:MM format?
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
         return self.timestamp.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S")
 
 
 class TerminalEvent(PolymorphicModel):
+    """ Model representing a terminal event """
+
+    # Terminal that this event is related to
     terminal = models.ForeignKey(Terminal, null=False, blank=False, on_delete=models.DO_NOTHING)
+    # Timestamp of the event
     timestamp = models.DateTimeField(auto_now=True)
 
     @property
     def time(self) -> str:
+        """ String representation of the timestamp.
+
+        :returns: string representation of the time
+        :rtype: str
+        """
+
+        # TODO - should this be HH:MM?
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
         return self.timestamp.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S")
 
 
 class ParkingEvent(TerminalEvent):
+    """ Model representing a terminal parking event """
+
+    # Old and new values
     old_value = models.IntegerField(null=True, blank=True)
     new_value = models.IntegerField(null=True, blank=True)
 
     @property
     def text(self) -> str:
+        """ Text representation of the parking event.
+
+        :returns: text representation of the parking event
+        :rtype: str
+        """
+
         return "Terminal parking now {}% full".format(self.new_value)
 
     def __repr__(self) -> str:
@@ -747,32 +861,65 @@ class ParkingEvent(TerminalEvent):
 
 
 class LocationEvent(PolymorphicModel):
+    """ Model representing a location event. """
+
+    # Ferry this event is associated with
     ferry = models.ForeignKey(Ferry, null=False, blank=False, on_delete=models.DO_NOTHING)
+
+    # Timestamps for when this event was created, and the time of the event from BC Ferries
+    # TODO - last updated should probably not have auto_now=True
     timestamp = models.DateTimeField(auto_now=True)
     last_updated = models.DateTimeField(auto_now=True)
 
     @property
     def time(self) -> str:
+        """ String representation of the event.
+
+        :returns: string representation of the timestamp
+        :rtype: str
+        """
+
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
         return self.timestamp.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S")
 
     @property
     def updated(self) -> str:
+        """ String representation of the last update from BC Ferries.
+
+        :returns: string representation of the updated time
+        :rtype: str
+        """
+
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
         return self.last_updated.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S")
 
 
 class DepartureTimeEvent(SailingEvent):
+    """ Model representing a sailing departure event. """
+
+    # Old departure time and new departure time
     old_departure = models.DateTimeField(null=True, blank=True)
     new_departure = models.DateTimeField(null=True, blank=True)
 
     @property
     def departure(self) -> str:
+        """ Return a string representation of the new departure time.
+
+        :returns: string representation of the departure time
+        :rtype: str
+        """
+
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
         return self.new_departure.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S")
 
     @property
     def text(self) -> str:
+        """ Return a string representation of the departure event.
+
+        :returns: string representation of the departure event
+        :rtype: str
+        """
+
         return "Departure time changed to {}".format(
             self.departure
         )
@@ -784,17 +931,34 @@ class DepartureTimeEvent(SailingEvent):
 
 
 class ArrivalTimeEvent(SailingEvent):
+    """ Model representing a sailing arrival event. """
+
+    # Old and new arrival times
     old_arrival = models.DateTimeField(null=True, blank=True)
     new_arrival = models.DateTimeField(null=True, blank=True)
+
+    # Boolean representing whether this is an ETA or an actual time
     is_eta = models.BooleanField(default=False)
 
     @property
     def arrival(self) -> str:
+        """ Return a string representation of the arrival time.
+
+        :returns: string representation of the arrival time
+        :rtype: str
+        """
+
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
         return self.new_arrival.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S")
 
     @property
     def text(self) -> str:
+        """ Return a string representation of the arrival event.
+
+        :returns: string representation of the arrival event
+        :rtype: str
+        """
+
         if self.is_eta:
             return "ETA changed to {}".format(
                 self.arrival
@@ -813,8 +977,16 @@ class ArrivalTimeEvent(SailingEvent):
 
 
 class DepartedEvent(SailingEvent):
+    """ Model representing a departed sailing event. """
+
     @property
     def text(self) -> str:
+        """ Return a string representation of the departed event.
+
+        :returns: string representation of the departed event
+        :rtype: str
+        """
+
         return "Sailing has departed"
 
     def __repr__(self) -> str:
@@ -824,8 +996,16 @@ class DepartedEvent(SailingEvent):
 
 
 class ArrivedEvent(SailingEvent):
+    """ Model representing an arrived sailing event. """
+
     @property
     def text(self) -> str:
+        """ Return a string representation of the arrival event.
+
+        :returns: string representation of the arrival event
+        :rtype: str
+        """
+
         return "Sailing has arrived"
 
     def __repr__(self) -> str:
@@ -835,6 +1015,9 @@ class ArrivedEvent(SailingEvent):
 
 
 class StatusEvent(SailingEvent):
+    """ Model representing a sailing status event. """
+
+    # Old and new Status objects this event references
     old_status = models.ForeignKey(Status, null=True, blank=True, related_name="old_status",
                                    on_delete=models.DO_NOTHING)
     new_status = models.ForeignKey(Status, null=True, blank=True, related_name="new_status",
@@ -842,6 +1025,12 @@ class StatusEvent(SailingEvent):
 
     @property
     def text(self) -> str:
+        """ Return a string representation of the status event.
+
+        :returns: string representation of the status event
+        :rtype: str
+        """
+
         return "Status changed to {}".format(self.new_status)
 
     def __repr__(self) -> str:
@@ -851,6 +1040,12 @@ class StatusEvent(SailingEvent):
 
 
 class FerryEvent(SailingEvent):
+    """ Model representing a sailing ferry event.
+
+    This class is used to represent a change in ferry for a particular sailing.
+    """
+
+    # References to the old and new Ferry objects
     old_ferry = models.ForeignKey(Ferry, null=True, blank=True, related_name="old_ferry",
                                   on_delete=models.DO_NOTHING)
     new_ferry = models.ForeignKey(Ferry, null=True, blank=True, related_name="new_ferry",
@@ -858,6 +1053,12 @@ class FerryEvent(SailingEvent):
 
     @property
     def text(self) -> str:
+        """ Return a string representation of the ferry event.
+
+        :returns: string representation of the ferry event
+        :rtype: str
+        """
+
         return "Ferry changed to {}".format(self.new_ferry.name)
 
     def __repr__(self) -> str:
@@ -867,11 +1068,20 @@ class FerryEvent(SailingEvent):
 
 
 class PercentFullEvent(SailingEvent):
+    """ Model representing a change in how full a sailing is. """
+
+    # Old and new percentage full values
     old_value = models.IntegerField(null=True, blank=True)
     new_value = models.IntegerField(null=True, blank=True)
 
     @property
     def text(self) -> str:
+        """ Return a string representation of the event.
+
+        :returns: string representation of the event
+        :rtype: str
+        """
+
         return "Sailing now {}% full".format(self.new_value)
 
     def __repr__(self) -> str:
@@ -881,11 +1091,20 @@ class PercentFullEvent(SailingEvent):
 
 
 class CarPercentFullEvent(SailingEvent):
+    """ Model representing a change in how full a sailing is for cars. """
+
+    # Old and new percentage full values
     old_value = models.IntegerField(null=True, blank=True)
     new_value = models.IntegerField(null=True, blank=True)
 
     @property
     def text(self) -> str:
+        """ Return a string representation of the event.
+
+        :returns: string representation of the event
+        :rtype: str
+        """
+
         return "Sailing now {}% full for cars".format(self.new_value)
 
     def __repr__(self) -> str:
@@ -895,11 +1114,20 @@ class CarPercentFullEvent(SailingEvent):
 
 
 class OversizePercentFullEvent(SailingEvent):
+    """ Model representing a change in how full a sailing is for oversize vehicles. """
+
+    # Old and new percentage full values
     old_value = models.IntegerField(null=True, blank=True)
     new_value = models.IntegerField(null=True, blank=True)
 
     @property
     def text(self) -> str:
+        """ Return a string representation of the event.
+
+        :returns: string representation of the event
+        :rtype: str
+        """
+
         return "Sailing now {}% full for oversize vehicles".format(self.new_value)
 
     def __repr__(self) -> str:
@@ -909,9 +1137,16 @@ class OversizePercentFullEvent(SailingEvent):
 
 
 class CancelledEvent(SailingEvent):
+    """ Model representing a cancelled sailing event. """
 
     @property
     def text(self)-> str:
+        """ Return a string representation of the event.
+
+        :returns: string representation of the event
+        :rtype: str
+        """
+
         return "Sailing has been cancelled"
 
     def __repr__(self) -> str:
@@ -921,10 +1156,17 @@ class CancelledEvent(SailingEvent):
 
 
 class FullEvent(SailingEvent):
+    """ Model representing a full sailing event. """
 
     @property
     def text(self)-> str:
-        return "Sailing has been cancelled"
+        """ Return a string representation of the event.
+
+        :returns: string representation of the event
+        :rtype: str
+        """
+
+        return "Sailing is now full"
 
     def __repr__(self) -> str:
         return "<CancelledEvent: {}>".format(
@@ -933,6 +1175,9 @@ class FullEvent(SailingEvent):
 
 
 class CarWaitEvent(RouteEvent):
+    """ Model representing a change in car waits. """
+
+    # Old and new values
     old_value = models.IntegerField(null=True, blank=True)
     new_value = models.IntegerField(null=True, blank=True)
 
@@ -943,6 +1188,9 @@ class CarWaitEvent(RouteEvent):
 
 
 class OversizeWaitEvent(RouteEvent):
+    """ Model representing a change in oversize vehicle waits. """
+
+    # Old and nee values
     old_value = models.IntegerField(null=True, blank=True)
     new_value = models.IntegerField(null=True, blank=True)
 
@@ -953,6 +1201,8 @@ class OversizeWaitEvent(RouteEvent):
 
 
 class InPortEvent(LocationEvent):
+    """ Model representing an in port event for a ferry. """
+
     def __repr__(self) -> str:
         return "<InPortEvent: [{}]>".format(
             self.last_updated
@@ -960,6 +1210,8 @@ class InPortEvent(LocationEvent):
 
 
 class UnderWayEvent(LocationEvent):
+    """ Model representing an under way event for a ferry. """
+
     def __repr__(self) -> str:
         return "<UnderWayEvent: [{}]>".format(
             self.last_updated
@@ -967,6 +1219,7 @@ class UnderWayEvent(LocationEvent):
 
 
 class OfflineEvent(LocationEvent):
+    """ Model representing an offline event for a ferry. """
     def __repr__(self) -> str:
         return "<OfflineEvent: [{}]>".format(
             self.last_updated
@@ -974,6 +1227,7 @@ class OfflineEvent(LocationEvent):
 
 
 class StoppedEvent(LocationEvent):
+    """ Model representing a stopped event for a ferry. """
     def __repr__(self) -> str:
         return "<StoppedEvent: [{}]>".format(
             self.last_updated
@@ -981,6 +1235,9 @@ class StoppedEvent(LocationEvent):
 
 
 class HeadingEvent(LocationEvent):
+    """ Model representing a heading event for a ferry. """
+
+    # Old and new values
     old_value = models.CharField(max_length=8, null=True, blank=True)
     new_value = models.CharField(max_length=8, null=True, blank=True)
 
@@ -991,7 +1248,11 @@ class HeadingEvent(LocationEvent):
 
 
 class DestinationEvent(LocationEvent):
+    """ Model representing a destination event for a ferry. """
+
+    # Destination object this event is in reference to
     destination = models.ForeignKey(Destination, null=True, blank=True, on_delete=models.DO_NOTHING)
+
     def __repr__(self) -> str:
         return "<DestinationEvent: [{}]>".format(
             self.last_updated
