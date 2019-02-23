@@ -402,7 +402,7 @@ class Sailing(models.Model):
         """
 
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
-        return self.scheduled_departure.astimezone(tz).strftime("%-I:%M%p").lower()
+        return self.scheduled_departure.astimezone(tz).strftime("%I:%M%p").lower()
 
     @property
     def scheduled_arrival_hour_minute(self) -> str:
@@ -413,7 +413,7 @@ class Sailing(models.Model):
         """
 
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
-        return self.scheduled_arrival.astimezone(tz).strftime("%-I:%M%p").lower()
+        return self.scheduled_arrival.astimezone(tz).strftime("%I:%M%p").lower()
 
     @property
     def actual_departure_hour_minute(self) -> str:
@@ -424,7 +424,7 @@ class Sailing(models.Model):
         """
 
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
-        return self.actual_departure.astimezone(tz).strftime("%-I:%M%p").lower()
+        return self.actual_departure.astimezone(tz).strftime("%I:%M%p").lower()
 
     @property
     def eta_or_arrival_time_hour_minute(self) -> str:
@@ -435,7 +435,7 @@ class Sailing(models.Model):
         """
 
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
-        return self.eta_or_arrival_time.astimezone(tz).strftime("%-I:%M%p").lower()
+        return self.eta_or_arrival_time.astimezone(tz).strftime("%I:%M%p").lower()
 
     @property
     def is_full(self) -> bool:
