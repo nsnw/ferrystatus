@@ -308,8 +308,10 @@ class Ferry(models.Model):
                 "id": self.current_sailing.id,
                 "route_id": self.current_sailing.route.id,
                 "route_name": self.current_sailing.route.name,
-                "eta": self.current_sailing.eta_or_arrival_time_hour_minute
             }
+
+            if self.current_sailing.eta_or_arrival_time:
+                response['current_sailing']['eta'] = self.current_sailing.eta_or_arrival_time_hour_minute
 
         if self.next_sailing:
             response['next_sailing'] = {
