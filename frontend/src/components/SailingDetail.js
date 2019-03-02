@@ -4,6 +4,7 @@ import PropTypes from "prop-types";
 import { PercentFull } from "./PercentFull";
 import key from "weak-key";
 import { BasePage } from "./Base";
+import { formatState } from "./Utils";
 
 function getDepartedStateColour(value) {
   let state = value;
@@ -14,31 +15,6 @@ function getDepartedStateColour(value) {
     return "danger"
   else
     return "success"
-};
-
-function formatState(sailing) {
-  if (sailing.state == "Arrived")
-    return <div>
-      <h5>{sailing.ferry}</h5>
-      <h1><strong>{sailing.state}</strong> at {sailing.eta_or_arrival_time_hour_minute}</h1>
-      <div className="p-2"><PercentFull percentFull={sailing.percent_full} /></div>
-    </div>
-  else if (sailing.state == "Departed")
-    return <div>
-      <h5>{sailing.ferry}</h5>
-      <h1><strong>{sailing.state}</strong> at {sailing.actual_departure_hour_minute}</h1>
-    </div>
-  else if (sailing.status == "Cancelled")
-    return <div>
-      <h5>{sailing.ferry}</h5>
-      <h1><strong className="rounded p-1 pl-2 pr-2 text-white bg-danger">Cancelled</strong></h1>
-    </div>
-  else
-    return <div>
-      <h5>{sailing.ferry}</h5>
-      <h1><strong>{sailing.state}</strong></h1>
-      <h5>{sailing.status}</h5>
-    </div>
 };
 
 function formatAverages(sailing) {

@@ -39,7 +39,7 @@ const AllSailingsTableInner = ({ data }) =>
           </div>
           <div className="col-3">{formatDeparture(el)}</div>
           <div className="col-3">{formatStatus(el)}</div>
-          <div className="col-6"><strong>{el.ferry}&nbsp;</strong></div>
+          <div className="col-6"><strong>{el.ferry.name}&nbsp;</strong></div>
           <div className="col-6">{!el.percent_full ? ( <p></p> ) : ( <PercentFull percentFull={el.percent_full} /> )}</div>
         </div>
       ))}
@@ -79,7 +79,7 @@ const RouteSailingsTableInner = ({ data }) =>
             <div className="col-8 row pr-0">
               <div className="col-lg-8 col-12 text-center p-0 pt-1 flex-column justify-content-center card card-block">
                 <h5>
-                  {!el.ferry ? ( <strong className="text-black-50">TBC</strong> ) : ( <strong>{el.ferry}</strong> )}
+                  {!el.ferry ? ( <strong className="text-black-50">TBC</strong> ) : ( <strong>{el.ferry.name}</strong> )}
                 </h5>
                 {formatStatusText(el)}
               </div>

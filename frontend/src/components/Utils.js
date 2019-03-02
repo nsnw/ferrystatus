@@ -5,29 +5,70 @@ import { PercentFull } from "./PercentFull";
 var moment = require('moment-timezone');
 
 function formatState(sailing) {
+  let ferry_name = sailing.ferry ? sailing.ferry.name : undefined;
+
   if (sailing.state == "Arrived")
     return <div>
-      <h5>{sailing.ferry}</h5>
+      <h5>{ferry_name}</h5>
       <h1><strong>{sailing.state}</strong> at {sailing.eta_or_arrival_time_hour_minute}</h1>
       <div className="p-2"><PercentFull percentFull={sailing.percent_full} /></div>
     </div>
   else if (sailing.state == "Departed")
     return <div>
-      <h5>{sailing.ferry}</h5>
+      <h5>{ferry_name}</h5>
       <h1><strong>{sailing.state}</strong> at {sailing.actual_departure_hour_minute}</h1>
     </div>
   else if (sailing.status == "Cancelled")
     return <div>
-      <h5>{sailing.ferry}</h5>
+      <h5>{ferry_name}</h5>
       <h1><strong className="rounded p-1 pl-2 pr-2 text-white bg-danger">Cancelled</strong></h1>
     </div>
   else
     return <div>
-      <h5>{sailing.ferry}</h5>
+      <h5>{ferry_name}</h5>
       <h1><strong>{sailing.state}</strong></h1>
       <h5>{sailing.status}</h5>
     </div>
 };
+
+function formatAmenities(amenities) {
+  let amenity_list = "";
+  for (var i = 0; i < amenities.length; i++) {
+    let amenity = amenities[i];
+
+    switch(amenity) {
+      case "Coastal Cafe":
+        amenity_list += "🍔";
+        break;
+      case "Pacific Buffet":
+        amenity_list += "🍽️";
+        break;
+      case "Coast Cafe Express":
+        amenity_list += "☕";
+        break;
+      case "Pet Area":
+        amenity_list += "🐕";
+        break;
+      case "Seawest Lounge":
+        amenity_list += "💺";
+        break;
+      case "Passages Gift Shop":
+        amenity_list += "🎁";
+        break;
+      case "Kids Zone":
+        amenity_list += "🧒";
+        break;
+      case "Video Zone":
+        amenity_list += "🎮";
+        break;
+      case "Work/study stations":
+        amenity_list += "💻";
+        break;
+    }
+  }
+
+  return amenity_list;
+}
 
 
 function randomPercent() {
@@ -104,4 +145,4 @@ SailingState.propTypes = {
   sailing: PropTypes.object.isRequired
 };
 
-export { getWaitColour, formatRibbon, formatDeparture, formatStatus, formatState };
+export { getWaitColour, formatRibbon, formatDeparture, formatStatus, formatState, formatAmenities };

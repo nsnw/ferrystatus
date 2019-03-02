@@ -4,6 +4,7 @@ import PropTypes from "prop-types";
 import key from "weak-key";
 import { PercentFull } from "./PercentFull";
 import { BasePage } from "./Base";
+import { formatAmenities } from "./Utils";
 
 var moment = require('moment-timezone');
 
@@ -109,8 +110,9 @@ const AllRoutesTableInner = ({ data }) =>
               <div className="col-8 row pr-0">
                 <div className="col-lg-8 col-12 text-center p-0 pt-1 flex-column justify-content-center card card-block">
                   <h5>
-                    {!el.next_sailing.ferry ? ( <strong className="text-black-50">TBC</strong> ) : ( <strong>{el.next_sailing.ferry}</strong> )}
+                    {!el.next_sailing.ferry ? ( <strong className="text-black-50">TBC</strong> ) : ( <strong>{el.next_sailing.ferry.name}</strong> )}
                   </h5>
+                  {el.next_sailing.ferry ? ( formatAmenities(el.next_sailing.ferry.amenities) ) : ( null )}
                 </div>
                 <div className="col-lg-4 col-12 p-2 flex-column justify-content-center card card-block">{!el.next_sailing.percent_full ? ( <p></p> ) : ( <PercentFull percentFull={el.next_sailing.percent_full} /> )}</div>
               </div>
