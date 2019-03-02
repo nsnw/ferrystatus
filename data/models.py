@@ -202,6 +202,17 @@ class Route(models.Model):
         )
 
 
+class Amenity(models.Model):
+    """ Model representing an Amenity. """
+
+    name = models.CharField(max_length=128, null=False, blank=False)
+
+    def __repr__(self) -> str:
+        return "<Amenity: {}>".format(
+            self.name
+        )
+
+
 class Ferry(models.Model):
     """ Model representing a Ferry. """
 
@@ -218,6 +229,7 @@ class Ferry(models.Model):
     # The time and date of the latest ferry position, and the heading
     last_updated = models.DateTimeField(auto_now=True)
     heading = models.CharField(max_length=8, null=True, blank=True)
+    amenities = models.ManyToManyField(Amenity)
 
     @property
     def current_sailing(self) -> "Sailing":
@@ -247,9 +259,23 @@ class Ferry(models.Model):
         try:
             # Return the first Sailing for this Ferry that hasn't departed
             return self.sailing_set.filter(departed=False).\
-                order_by("scheduled_departure").\
+                order_by("-scheduled_departure").\
                 first()
         except:
+            return None
+
+    @property
+    def current_sailing(self) -> "Sailing":
+        """ Return the current Sailing that a Ferry is associated with, if any.
+
+        :returns: the current Sailing this Ferry is associated with (or None)
+        """
+
+        if self.status == "Under Way":
+            return self.sailing_set.filter(departed=True, arrived=False).\
+                order_by("-scheduled_departure").\
+                first()
+        else:
             return None
 
     @property
@@ -264,6 +290,7 @@ class Ferry(models.Model):
         response = {
             "name": self.name,
             "status": self.status,
+            "amenities": [amenity.name for amenity in self.amenities.all()],
             "last_updated": self.last_updated
         }
 
@@ -275,6 +302,22 @@ class Ferry(models.Model):
         # If the Ferry has a heading set, add it
         if self.heading:
             response['heading'] = self.heading
+
+        if self.current_sailing:
+            response['current_sailing'] = {
+                "id": self.current_sailing.id,
+                "route_id": self.current_sailing.route.id,
+                "route_name": self.current_sailing.route.name,
+                "eta": self.current_sailing.eta_or_arrival_time_hour_minute
+            }
+
+        if self.next_sailing:
+            response['next_sailing'] = {
+                "id": self.next_sailing.id,
+                "route_id": self.next_sailing.route.id,
+                "route_name": self.next_sailing.route.name,
+                "scheduled_departure": self.next_sailing.scheduled_departure_hour_minute
+            }
 
         return response
 
@@ -577,7 +620,7 @@ class Sailing(models.Model):
 
         # If this sailing has a ferry, add that
         if self.ferry:
-            response['ferry'] = self.ferry.name
+            response['ferry'] = self.ferry.as_dict
 
         # If this sailing has departed, add that
         if self.actual_departure:

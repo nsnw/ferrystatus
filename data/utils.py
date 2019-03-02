@@ -15,7 +15,7 @@ from .models import (Terminal, Route, Ferry, Sailing, Destination, Status,
                      InPortEvent, UnderWayEvent, OfflineEvent, HeadingEvent,
                      DestinationEvent, StoppedEvent, CancelledEvent,
                      ParkingEvent, CarPercentFullEvent,
-                     OversizePercentFullEvent)
+                     OversizePercentFullEvent, Amenity)
 
 from collector.models import (ConditionsRun, DeparturesRun, LocationsRun,
                               SailingDetailRun, ConditionsRawHTML, DeparturesRawHTML,
@@ -1260,3 +1260,71 @@ def get_ferry_locations() -> bool:
     run.set_status("Completed", successful=True)
     logger.info("Finished retrieving and processing locations")
     return True
+
+
+def get_ferry_details() -> bool:
+    """ Pull data on the ferry amenities and other details from the BC Ferries
+    website.
+
+    :returns: whether we succeeded or not
+    :rtype: bool
+    """
+
+    url = "http://www.bcferries.com/onboard-experiences/fleet/"
+
+    try:
+        # Query for data
+        logger.info("Querying BCF for data...")
+        response = requests.get(url)
+        if response.status_code == 200:
+            # Success!
+            logger.info("Successfully queried BCF for data")
+            # Store the page
+        else:
+            # Got a non-200 OK response
+            logger.error("Could not retrieve details from the BC Ferries website: {}".format(response.status_code))
+            return False
+    except Exception as e:
+        # TODO - handle this better
+        logger.error("Could not retrieve details from the BC Ferries website. {}".format(e))
+        return False
+
+    b = BeautifulSoup(response.text, 'html.parser')
+
+    for ferry in b.find_all('p', style="text-align: center;"):
+        if ferry.a:
+            ferry_url = ferry.a['href']
+            ferry_name = ferry.text.strip()
+
+            print(ferry_name)
+
+            ferry_detail_page = requests.get(
+                "http://www.bcferries.com{}".format(ferry_url)
+            )
+
+            ferry_detail = BeautifulSoup(ferry_detail_page.text, 'html.parser')
+
+            details = ferry_detail.find_all('table')[1].find_all('tr')[7].\
+                find_all('td')[1].text
+            amenities = details.split(', ')
+
+            # Get ferry
+            try:
+                ferry_o = Ferry.objects.get(name=ferry_name)
+            except:
+                logger.info("Ferry {} not found, skipping.".format(ferry_name))
+                continue
+
+            for amenity in amenities:
+                amenity_name = re.sub('([a-zA-Z])', lambda x: x.groups()[0].upper(), amenity, 1)
+
+                # Get or create amenity
+                amenity_o, created = Amenity.objects.get_or_create(
+                    name=amenity_name
+                )
+
+                if created:
+                    logger.info("Amenity {} created".format(amenity_name))
+
+                ferry_o.amenities.add(amenity_o)
+                ferry_o.save()
