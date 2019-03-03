@@ -35,5 +35,17 @@ module.exports = {
   },
   plugins: [
     new ExtractTextPlugin('css/style.css'),
-  ]
+  ],
+  entry: {
+    index: './frontend/src/index.js'
+  },
+  output: {
+    filename: '[name].bundle.js',
+    path: path.resolve('./frontend/static/frontend/dist/js/')
+  },
+  optimization: {
+    splitChunks: {
+      chunks: 'all'
+    }
+  }
 };
