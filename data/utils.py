@@ -1291,12 +1291,10 @@ def get_ferry_details() -> bool:
 
     b = BeautifulSoup(response.text, 'html.parser')
 
-    for ferry in b.find_all('p', style="text-align: center;"):
-        if ferry.a:
+    for ferry in b.find_all('tbody')[1].find_all('td'):
+        if ferry.a and '/fleet/' in ferry.a['href']:
             ferry_url = ferry.a['href']
             ferry_name = ferry.text.strip()
-
-            print(ferry_name)
 
             ferry_detail_page = requests.get(
                 "http://www.bcferries.com{}".format(ferry_url)
