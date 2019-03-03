@@ -38,7 +38,7 @@ function percentFullChart(data) {
                     tooltipFormat: 'll HH:mm'
                 },
                 scaleLabel: {
-                    display: true,
+                    display: false,
                     labelString: 'Time'
                 }
             }],

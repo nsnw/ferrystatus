@@ -36,7 +36,7 @@ function formatAverages(sailing) {
     </div></div>
   else if (full.average > 50)
     full_content = <div className="col-12 col-lg-4 mb-1"><div className={css_classes + "bg-warning"}>
-      <p>This sailing normally <strong>has space</strong> when it leaves</p>
+      <p>This sailing normally <strong>at least half full</strong> when it leaves</p>
     </div></div>
   else
     full_content = <div className="col-12 col-lg-4 mb-1"><div className={css_classes + "bg-success text-white"}>

@@ -41,6 +41,7 @@ module.exports = {
   },
   output: {
     filename: '[name].bundle.js',
+    chunkFilename: '[name].bundle.js',
     path: path.resolve('./frontend/static/frontend/dist/js/')
   },
   optimization: {

@@ -666,7 +666,7 @@ class Sailing(models.Model):
         for event in self.sailingevent_set.all().order_by('timestamp'):
             if type(event) == PercentFullEvent:
                 percent_full_data.append({
-                    'timestamp': event.timestamp.timestamp(),
+                    'timestamp': int(event.timestamp.timestamp()),
                     'percent_full': event.new_value
                 })
 
