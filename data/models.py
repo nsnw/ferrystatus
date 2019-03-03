@@ -610,7 +610,7 @@ class Sailing(models.Model):
             "id": self.pk,
             "route": self.route.name,
             "route_id": self.route.id,
-            "scheduled_departure": int(self.scheduled_departure.strftime("%s")),
+            "scheduled_departure": int(self.scheduled_departure.timestamp()),
             "scheduled_departure_hour_minute": self.scheduled_departure_hour_minute,
             "state": self.state,
             "aggregates": {
@@ -636,7 +636,7 @@ class Sailing(models.Model):
 
         # If this sailing has a scheduled arrival time, add that
         if self.scheduled_arrival:
-            response['scheduled_arrival'] = int(self.scheduled_arrival.strftime("%s"))
+            response['scheduled_arrival'] = int(self.scheduled_arrival.timestamp())
             response['scheduled_arrival_hour_minute'] = self.scheduled_arrival_hour_minute
 
         # If the sailing has a status, add that
@@ -661,6 +661,16 @@ class Sailing(models.Model):
         response['events'] = [
             event.as_dict for event in self.sailingevent_set.all().order_by('timestamp')
         ]
+
+        percent_full_data = []
+        for event in self.sailingevent_set.all().order_by('timestamp'):
+            if type(event) == PercentFullEvent:
+                percent_full_data.append({
+                    'timestamp': event.timestamp.timestamp(),
+                    'percent_full': event.new_value
+                })
+
+        response['percent_full_data'] = percent_full_data
 
         return response
 
