@@ -4,7 +4,8 @@ import PropTypes from "prop-types";
 import { PercentFull } from "./PercentFull";
 import key from "weak-key";
 import { BasePage } from "./Base";
-import { formatState } from "./Utils";
+import { formatState, formatAmenitiesDetail } from "./Utils";
+import { percentFullChart } from "./Charts";
 
 function getDepartedStateColour(value) {
   let state = value;
@@ -15,7 +16,7 @@ function getDepartedStateColour(value) {
     return "danger"
   else
     return "success"
-};
+}
 
 function formatAverages(sailing) {
   // get averages
@@ -73,7 +74,7 @@ function formatAverages(sailing) {
     {leaving_content}
     {arriving_content}
   </div>
-};
+}
 
 
 const SailingDetailInner = ({ data }) =>
@@ -96,7 +97,9 @@ const SailingDetailInner = ({ data }) =>
           </div>
         </div>
       </div>
+      {formatAmenitiesDetail(data.ferry.amenities)}
       {formatAverages(data)}
+      {percentFullChart(data.percent_full_data)}
       {!data.events ? ( <p></p> ) : (
         <div className="row card mb-5 mt-5">
           <table className="table is-striped">

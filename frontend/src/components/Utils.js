@@ -32,44 +32,148 @@ function formatState(sailing) {
 };
 
 function formatAmenities(amenities) {
-  let amenity_list = "";
+  let amenity_list = [];
+
   for (var i = 0; i < amenities.length; i++) {
     let amenity = amenities[i];
 
     switch(amenity) {
       case "Coastal Cafe":
-        amenity_list += "🍔";
+        amenity_list.push(
+            <span title={amenity}>🍔</span>
+        );
         break;
       case "Pacific Buffet":
-        amenity_list += "🍽️";
+        amenity_list.push(
+            <span title={amenity}>🍽️</span>
+        );
         break;
       case "Coast Cafe Express":
-        amenity_list += "☕";
+      case "Arbutus Coffee Bar":
+        amenity_list.push(
+            <span title={amenity}>☕</span>
+        );
         break;
       case "Pet Area":
-        amenity_list += "🐕";
+        amenity_list.push(
+            <span title={amenity}>🐕</span>
+        );
         break;
       case "Seawest Lounge":
-        amenity_list += "💺";
+        amenity_list.push(
+            <span title={amenity}>💺</span>
+        );
         break;
       case "Passages Gift Shop":
-        amenity_list += "🎁";
+      case "Passages":
+        amenity_list.push(
+            <span title={amenity}>🎁</span>
+        );
         break;
       case "Kids Zone":
-        amenity_list += "🧒";
+      case "Kids play areas":
+        amenity_list.push(
+            <span title={amenity}>🧒</span>
+        );
         break;
       case "Video Zone":
-        amenity_list += "🎮";
+        amenity_list.push(
+            <span title={amenity}>🎮</span>
+        );
         break;
       case "Work/study stations":
-        amenity_list += "💻";
+      case "Work stations":
+        amenity_list.push(
+            <span title={amenity}>💻</span>
+        );
+        break;
+      case "Mobile charging stations":
+        amenity_list.push(
+            <span title={amenity}>🔌</span>
+        );
+        break;
+      case "Accessible washrooms":
+        amenity_list.push(
+            <span title={amenity}>♿</span>
+        );
         break;
     }
   }
 
-  return amenity_list;
+  return <div>{amenity_list}</div>;
 }
 
+function formatAmenitiesDetail(amenities) {
+  let amenity_list = [];
+
+  for (var i = 0; i < amenities.length; i++) {
+    let amenity = amenities[i];
+
+    switch(amenity) {
+      case "Coastal Cafe":
+        amenity_list.push(
+            <div className="col-sm-3">🍔 {amenity}</div>
+        );
+        break;
+      case "Pacific Buffet":
+        amenity_list.push(
+            <div className="col-sm-3">🍽️ {amenity}</div>
+        );
+        break;
+      case "Coast Cafe Express":
+      case "Arbutus Coffee Bar":
+        amenity_list.push(
+            <div className="col-sm-3">☕ {amenity}</div>
+        );
+        break;
+      case "Pet Area":
+        amenity_list.push(
+            <div className="col-sm-3">🐕 {amenity}</div>
+        );
+        break;
+      case "Seawest Lounge":
+        amenity_list.push(
+            <div className="col-sm-3">💺 {amenity}</div>
+        );
+        break;
+      case "Passages Gift Shop":
+      case "Passages":
+        amenity_list.push(
+            <div className="col-sm-3">🎁 {amenity}</div>
+        );
+        break;
+      case "Kids Zone":
+      case "Kids play areas":
+        amenity_list.push(
+            <div className="col-sm-3">🧒 {amenity}</div>
+        );
+        break;
+      case "Video Zone":
+        amenity_list.push(
+            <div className="col-sm-3">🎮 {amenity}</div>
+        );
+        break;
+      case "Work/study stations":
+      case "Work stations":
+        amenity_list.push(
+            <div className="col-sm-3">💻 {amenity}</div>
+        );
+        break;
+      case "Mobile charging stations":
+        amenity_list.push(
+            <div className="col-sm-3">🔌 {amenity}</div>
+        );
+        break;
+      case "Accessible washrooms":
+        amenity_list.push(
+            <div className="col-sm-3">♿ {amenity}</div>
+        );
+        break;
+    }
+  }
+
+  return <div className="row mb-4">{amenity_list}</div>;
+}
 
 function randomPercent() {
   return Math.floor((Math.random() * 100));
@@ -145,4 +249,4 @@ SailingState.propTypes = {
   sailing: PropTypes.object.isRequired
 };
 
-export { getWaitColour, formatRibbon, formatDeparture, formatStatus, formatState, formatAmenities };
+export { getWaitColour, formatRibbon, formatDeparture, formatStatus, formatState, formatAmenities, formatAmenitiesDetail };

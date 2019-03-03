@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Route, Link } from "react-router-dom";
 import PropTypes from "prop-types";
 import key from "weak-key";
 import { PercentFull } from "./PercentFull"
-import { getWaitColour, formatDeparture, formatStatus, formatRibbon, formatState } from "./Utils"
+import { getWaitColour, formatDeparture, formatStatus, formatRibbon, formatState, formatAmenities } from "./Utils"
 import { BasePage } from "./Base";
 
 function formatStatusText(sailing) {
@@ -39,7 +39,10 @@ const AllSailingsTableInner = ({ data }) =>
           </div>
           <div className="col-3">{formatDeparture(el)}</div>
           <div className="col-3">{formatStatus(el)}</div>
-          <div className="col-6"><strong>{el.ferry.name}&nbsp;</strong></div>
+          <div className="col-6">
+            <strong>{el.ferry.name}&nbsp;</strong>
+            {el.ferry ? ( formatAmenities(el.ferry.amenities) ) : ( null )}
+          </div>
           <div className="col-6">{!el.percent_full ? ( <p></p> ) : ( <PercentFull percentFull={el.percent_full} /> )}</div>
         </div>
       ))}
@@ -81,6 +84,7 @@ const RouteSailingsTableInner = ({ data }) =>
                 <h5>
                   {!el.ferry ? ( <strong className="text-black-50">TBC</strong> ) : ( <strong>{el.ferry.name}</strong> )}
                 </h5>
+                {el.ferry ? ( formatAmenities(el.ferry.amenities) ) : ( null )}
                 {formatStatusText(el)}
               </div>
               <div className="col-lg-4 col-12 p-2 flex-column justify-content-center card card-block">{!el.percent_full ? ( <p></p> ) : ( <PercentFull percentFull={el.percent_full} /> )}</div>
