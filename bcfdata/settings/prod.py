@@ -8,8 +8,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': "postgres",
         'USER': "postgres",
-        'PASSWORD': os.environ["DOKKU_POSTGRES_FERRIES_DB_ENV_POSTGRES_PASSWORD"],
-        'HOST': os.environ["DOKKU_POSTGRES_FERRIES_DB_PORT_5432_TCP_ADDR"],
+        'PASSWORD': os.environ["DOKKU_POSTGRES_FERRYSTATUS_DB_ENV_POSTGRES_PASSWORD"],
+        'HOST': os.environ["DOKKU_POSTGRES_FERRYSTATUS_DB_PORT_5432_TCP_ADDR"],
         'PORT': ''
     }
 }
