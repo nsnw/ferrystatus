@@ -168,7 +168,15 @@ def get_actual_departures(input_file: str=None) -> bool:
         for sailing in sailings.find_all('tr')[1:]:
             # Parse out the ferry, the scheduled departure time, the actual departure time, the ETA (or arrival time)
             # and the current status for this sailing
-            ferry, scheduled, actual, eta_arrival, status = [td.text.strip() for td in sailing.find_all('td')]
+
+            try:
+                ferry, scheduled, actual, eta_arrival, status = [td.text.strip() for td in sailing.find_all('td')]
+            except ValueError as e:
+                logger.error("Couldn't parse out sailing details: {}".format(e))
+                logger.error("Tried parsing: {}".format(sailing.find_all('td')))
+                run.info = sailing.find_all('td')
+                run.set_status("Failed during sailing parsing", False)
+                return False
 
             # Append the parsed details as a dict to our sailings list
             sailings_list.append({
@@ -331,7 +339,7 @@ def get_actual_departures(input_file: str=None) -> bool:
                 departed = False
 
             # Usefully (not), the ETA/arrival time can be '...' (unknown). We need to handle this gracefully
-            if eta_or_arrival and eta_or_arrival is not '...':
+            if eta_or_arrival and eta_or_arrival != '...':
                 if 'ETA' in eta_or_arrival:
                     # We have an ETA, so parse it out
                     eta = re.search(r'ETA: (.*)', eta_or_arrival).groups()[0]

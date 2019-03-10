@@ -395,6 +395,17 @@ class Sailing(models.Model):
     cancelled = models.BooleanField(default=False)
 
     @property
+    def local_date(self) -> str:
+        """ Returns a human-readable date in local time for this sailing.
+
+        :returns; the date of this sailing (in local time)
+        :rtype: str
+        """
+
+        tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
+        return self.scheduled_departure.astimezone(tz).strftime("%a, %B %m %Y")
+
+    @property
     def scheduled_departure_local(self) -> str:
         """ Returns the local scheduled departure time.
 
@@ -610,6 +621,7 @@ class Sailing(models.Model):
             "id": self.pk,
             "route": self.route.name,
             "route_id": self.route.id,
+            "local_date": self.local_date,
             "scheduled_departure": int(self.scheduled_departure.timestamp()),
             "scheduled_departure_hour_minute": self.scheduled_departure_hour_minute,
             "state": self.state,

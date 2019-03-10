@@ -8,6 +8,7 @@ class Run(PolymorphicModel):
     timestamp = models.DateTimeField(auto_now=True)
     successful = models.BooleanField(default=False)
     status = models.CharField(max_length=256, null=True, blank=True)
+    info = models.TextField(null=True, blank=True)
 
     @property
     def local_timestamp(self):
@@ -17,6 +18,10 @@ class Run(PolymorphicModel):
     @property
     def to_date_time(self) -> str:
         return self.local_timestamp.strftime("%Y-%m-%d %H:%M:%S")
+
+    @property
+    def html(self) -> list:
+        return self.rawhtml_set.all()
 
     def set_status(self, status, successful: bool = False):
         self.status = status

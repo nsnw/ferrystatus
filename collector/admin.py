@@ -2,9 +2,17 @@ from django.contrib import admin
 from .models import (ConditionsRun, DeparturesRun, LocationsRun,
                      ConditionsRawHTML, DeparturesRawHTML, LocationsRawHTML)
 
-admin.site.register(ConditionsRun)
-admin.site.register(DeparturesRun)
-admin.site.register(LocationsRun)
+class RunAdmin(admin.ModelAdmin):
+    list_display = (
+        'timestamp',
+        'successful',
+        'status',
+        'html'
+    )
+
+admin.site.register(ConditionsRun, RunAdmin)
+admin.site.register(DeparturesRun, RunAdmin)
+admin.site.register(LocationsRun, RunAdmin)
 admin.site.register(ConditionsRawHTML)
 admin.site.register(DeparturesRawHTML)
 admin.site.register(LocationsRawHTML)
