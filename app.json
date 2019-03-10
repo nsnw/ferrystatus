@@ -1,6 +1,7 @@
 {
   "scripts": {
     "dokku": {
+      "predeploy": "/app/build-frontend.sh",
       "postdeploy": "python /app/manage.py migrate"
     }
   }
