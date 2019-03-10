@@ -55,7 +55,7 @@ function percentFullChart(data) {
         },
     };
 
-    return <div className="row mb-4"><Line data={chartData} width={600} height={200} options={chartOptions} /></div>;
+    return <div className="row mb-4 pt-2 percentFullChart"><Line data={chartData} width={600} height={200} options={chartOptions} /></div>;
 }
 
 export { percentFullChart };

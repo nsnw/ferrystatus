@@ -1,5 +1,4 @@
 import React from "react";
-import ReactDOM from "react-dom";
 import DataProvider from "./DataProvider";
 import { AllSailingsTable, RouteSailingsTable } from "./SailingsTable";
 import SailingDetail from "./SailingDetail";
@@ -23,7 +22,5 @@ const Sailing = (props) => (
   <DataProvider endpoint="/api/sailings" sailingId={props.match.params.sailingId}
                 render={data => <SailingDetail data={data.response} />} />
 );
-//const wrapper = document.getElementById("app");
-//wrapper ? ReactDOM.render(<Sailings />, wrapper) : null;
-//export default Sailings
+
 export { ReallyAllSailings, AllSailings, RouteSailings, Sailing }

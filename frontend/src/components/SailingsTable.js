@@ -1,15 +1,10 @@
 import React from "react";
-import { BrowserRouter as Router, Route, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import PropTypes from "prop-types";
-import key from "weak-key";
 import { PercentFull } from "./PercentFull"
-import { getWaitColour, formatDeparture, formatStatus, formatRibbon, formatState, formatAmenities } from "./Utils"
+import { getWaitColour, formatDeparture, formatStatus, formatRibbon, formatState, formatAmenities,
+  formatStatusText } from "./Utils"
 import { BasePage } from "./Base";
-
-function formatStatusText(sailing) {
-  if (sailing.state == "Not departed" && sailing.status != "Cancelled" && sailing.status && sailing.status != "On Time")
-    return <td colSpan="5"><small> → {sailing.status}</small></td>
-};
 
 const AllSailingsTableInner = ({ data }) =>
   !data.length ? (
@@ -31,6 +26,7 @@ const AllSailingsTableInner = ({ data }) =>
           <div className="row col-12 pr-0">
             <div className="col-12 row pr-0">
               <div className="col-4 pt-2 bg-dark text-white text-center">
+                {el.local_date}
                 <Link to={`/sailings/${el.id}`}>
                   <h2><strong className="text-white">{el.scheduled_departure_hour_minute}</strong></h2>
                 </Link>
@@ -75,6 +71,7 @@ const RouteSailingsTableInner = ({ data }) =>
           <div className="col-12 row p-0 m-0">
             <div className="col-4 pt-2 pl-1 bg-dark text-white text-center">
               {formatRibbon(el)}
+              {el.local_date}
               <Link to={`/sailings/${el.id}`}>
                 <h2><strong className="text-white">{formatDeparture(el)}</strong></h2>
               </Link>

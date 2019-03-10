@@ -4,5 +4,6 @@
 <div id="app"></div>
 {% endblock %}
 {% block scripts %}
-<script src="{% static "frontend/dist/js/bundle.js" %}"></script>
+    <script src="{% static "frontend/dist/js/vendor.bundle.js" %}"></script>
+    <script src="{% static "frontend/dist/js/app.bundle.js" %}"></script>
 {% endblock %}

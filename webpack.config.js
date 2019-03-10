@@ -34,10 +34,10 @@ module.exports = {
     ]
   },
   plugins: [
-    new ExtractTextPlugin('css/style.css'),
+      new ExtractTextPlugin('css/style.css')
   ],
   entry: {
-    index: './frontend/src/index.js'
+    app: './frontend/src/index.js',
   },
   output: {
     filename: '[name].bundle.js',
@@ -46,7 +46,13 @@ module.exports = {
   },
   optimization: {
     splitChunks: {
-      chunks: 'all'
+      cacheGroups: {
+        commons: {
+          test: /[\\/]node_modules[\\/]/,
+          name: 'vendor',
+          chunks: 'all'
+        }
+      }
     }
   }
 };

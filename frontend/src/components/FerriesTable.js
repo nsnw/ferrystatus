@@ -4,17 +4,10 @@ import PropTypes from "prop-types";
 import key from "weak-key";
 import { BasePage } from "./Base";
 
-var keys = ['name', 'status', 'last_updated'];
-var headers = {
-  'name': "Ferry",
-  'status': "Status",
-  'last_updated': "Last updated"
-};
-
 function formatStatus(ferry) {
   if (ferry.current_sailing)
-    return <Link to={`/sailings/${ferry.current_sailing.id}`}>{ferry.current_sailing.route_name}</Link>
-};
+    return <Link to={`/sailings/${ferry.current_sailing.id}`}>{ferry.current_sailing.route_name}</Link>;
+}
 
 const FerriesTableInner = ({ data }) =>
   !data.length ? (

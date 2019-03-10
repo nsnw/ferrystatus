@@ -1,11 +1,13 @@
 import React from "react";
-import { Link } from "react-router-dom";
-import PropTypes from "prop-types";
 import { BasePage } from "./Base";
+
+/*
+This generates the static FAQ/About/Privacy pages
+ */
 
 const FAQPage = () =>
   <BasePage data={
-    <>
+    <div>
       <h1 className="title">Frequently Asked Questions</h1>
       <h2><strong>Where does the information on this site come from?</strong></h2>
       <p>
@@ -38,13 +40,13 @@ const FAQPage = () =>
       <p>
       The source code can be found on <a href="https://github.com/ve7cxz/ferrystatus">GitHub</a> under an <a href="https://opensource.org/licenses/MIT">MIT</a> license.
       </p>
-    </>
-  } />
+    </div>
+  } />;
 
 const AboutPage = () =>
   <BasePage data={
     <>
-      <h1 class="title">About this site</h1>
+      <h1 className="title">About this site</h1>
       <h2><strong>First of all, some important information...</strong></h2>
       <p>
       This site is in no way affiliated, supported or endorsed by BC Ferries. The data provided here is purely for informational purposes, and is not an official representation of BC Ferries' schedules. To view the official schedules and current conditions for all BC Ferries routes, click <a href="https://www.bcferries.com/current_conditions/">here</a>.
@@ -60,12 +62,12 @@ const AboutPage = () =>
       <p>You can contact me by e-mail at <a href="mailto:andy@nsnw.ca">andy@nsnw.ca</a>, or you can find me on Twitter as <a href="https://twitter.com/ve7cxz">@ve7cxz</a>.
       </p>
     </>
-  } />
+  } />;
 
 const PrivacyPage = () =>
   <BasePage data={
     <>
-      <h1 class="title">Privacy policy</h1>
+      <h1 className="title">Privacy policy</h1>
       <h2><strong>What data does this site collect?</strong></h2>
       <p>
       This site does not intentionally collect any data about users. However, as is standard practice for websites, the following information is logged for each request:-
@@ -80,14 +82,11 @@ const PrivacyPage = () =>
       <p>
       This site may set cookies to store state for certain parts of the site. These are used to store user settings.
       </p>
-      <p>
-      This site does not make use of any 3rd-party cookies.
-      </p>
       <h2><strong>What tracking or analytics does this site use?</strong></h2>
       <p>
-      At the moment, this site does not perform any analytics either in-browser or on the server side. If this changes, it will be clearly communicated on the front page of this site
+      This site uses Google Analytics to gather statistics about how the site is used. No attempts are (or will) be made to identify specific users of the site.
       </p>
     </>
-  } />
+  } />;
 
 export { AboutPage, FAQPage, PrivacyPage };

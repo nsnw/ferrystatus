@@ -1,10 +1,7 @@
 import React from "react";
-import ReactDOM from "react-dom";
 import { Link } from "react-router-dom";
 import DataProvider from "./DataProvider";
-import key from "weak-key";
 import PropTypes from "prop-types";
-import { PercentFull } from "./PercentFull";
 import { BasePage } from "./Base";
 
 const TerminalCardsInner = ({ data }) =>
@@ -16,7 +13,7 @@ const TerminalCardsInner = ({ data }) =>
         <strong>Terminals</strong>
       </h1>
       <p></p>
-      <div className="row mb-4 m-0">
+      <div className="row mb-4 m-0 terminals">
         {data.map(el => (
           <div key={el.id} className="col-12 col-lg-6 p-1">
             <div className="col-12 text-center bg-primary p-1">
@@ -53,6 +50,5 @@ const Terminal = (props) => (
   <DataProvider endpoint="/api/terminals"
                 render={data => <TerminalCards data={data.response} />} />
 );
-
 
 export { Terminal, AllTerminals }

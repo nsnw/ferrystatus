@@ -3,9 +3,24 @@
 
 body {
   font-family: 'Roboto', sans-serif !important;
+  background-color: #deeeff;
 }
 
-/*
+.sailingAmenities {
+  background-color: #fff;
+}
+
+.sailingAverages {
+}
+
+.percentFullChart {
+  background-color: #fff;
+}
+
+.textPage {
+  background-color: #fff;
+}
+
 @media screen and (max-width: 992px) {
   body {
     font-size: 0.75rem;
@@ -13,5 +28,23 @@ body {
   h2 {
     font-size: 1.5rem;
   }
+
+  // Ensure we maintain a margin on the right hand side
+  .container {
+    padding-right: 30px;
+  }
+
+  // Keep the navbar text the same size
+  .nav-link {
+    font-size: 1rem;
+  }
+
+  // Keep the sailing averages text the same size
+  .sailingAverages {
+    font-size: 1rem;
+  }
+
+  .terminals {
+    font-size: 1rem;
+  }
 }
-*/
