@@ -26,3 +26,6 @@ npm install webpack webpack-cli
 # Build frontend
 cd ${APP_DIR}
 npm run all:prod
+
+# Cleanup
+rm -rf ${APP_DIR}/node_modules ${APP_DIR}/.npm
