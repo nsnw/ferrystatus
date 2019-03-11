@@ -403,7 +403,7 @@ class Sailing(models.Model):
         """
 
         tz = pytz.timezone(settings.DISPLAY_TIME_ZONE)
-        return self.scheduled_departure.astimezone(tz).strftime("%a, %B %m %Y")
+        return self.scheduled_departure.astimezone(tz).strftime("%a, %B %d %Y")
 
     @property
     def scheduled_departure_local(self) -> str:
