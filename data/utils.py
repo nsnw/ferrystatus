@@ -410,6 +410,11 @@ def get_actual_departures(input_file: str=None) -> bool:
                     sailing_o.actual_departure, actual
                 ))
 
+                # But wait! Has the actual departure time disappeared?
+                if not actual:
+                    # Yes, this can happen too
+                    logger.debug("Actual departure time has been removed")
+
                 # Create a new DepartureTimeEvent
                 event_o = DepartureTimeEvent(
                     sailing=sailing_o,

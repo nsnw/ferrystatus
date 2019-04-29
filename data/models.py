@@ -768,28 +768,31 @@ class Sailing(models.Model):
 
         # Set the early/late departure/arrival times
         if not self.late_leaving and self.departed is True:
-            if self.actual_departure < self.scheduled_departure:
-                logger.debug("Sailing left early")
-                td = self.scheduled_departure - self.actual_departure
-                early = True
+            if not self.actual_departure:
+                logger.info("This sailing no longer has a departure time")
             else:
-                td = self.actual_departure - self.scheduled_departure
-                early = False
+                if self.actual_departure < self.scheduled_departure:
+                    logger.debug("Sailing left early")
+                    td = self.scheduled_departure - self.actual_departure
+                    early = True
+                else:
+                    td = self.actual_departure - self.scheduled_departure
+                    early = False
 
-            difference = td.seconds / 60
+                difference = td.seconds / 60
 
-            if early:
-                self.late_leaving = -difference
-            else:
-                self.late_leaving = difference
+                if early:
+                    self.late_leaving = -difference
+                else:
+                    self.late_leaving = difference
 
-            logger.debug("Sailing scheduled: {}, left at {}".format(
-                self.scheduled_departure_hour_minute, self.actual_departure_hour_minute
-            ))
-            logger.debug("Sailing was {} mins {} leaving".format(
-                difference,
-                "early" if early else "late"
-            ))
+                logger.debug("Sailing scheduled: {}, left at {}".format(
+                    self.scheduled_departure_hour_minute, self.actual_departure_hour_minute
+                ))
+                logger.debug("Sailing was {} mins {} leaving".format(
+                    difference,
+                    "early" if early else "late"
+                ))
 
         if not self.late_arriving and self.arrived is True:
             if self.eta_or_arrival_time < self.scheduled_arrival:
